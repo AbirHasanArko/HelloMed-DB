@@ -624,8 +624,8 @@ flowchart TD
 
     subgraph Oracle["Oracle Database 19c / 11g"]
         direction TB
-        Packages["PL/SQL Packages\npkg_users · pkg_appointments · pkg_pharmacy\npkg_ambulance · pkg_facilities · pkg_inventory"]
-        Schema["Tables · Sequences · Triggers\n24 tables · 24 sequences · 24 triggers"]
+        Packages["PL/SQL Packages<br>pkg_users · pkg_appointments · pkg_pharmacy<br>pkg_ambulance · pkg_facilities · pkg_inventory"]
+        Schema["Tables · Sequences · Triggers<br>24 tables · 24 sequences · 24 triggers"]
         
         Packages --> Schema
     end
