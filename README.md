@@ -615,7 +615,7 @@ flowchart TD
         Routes["Routes"]
         Controllers["Controllers"]
         Models["Eloquent Models"]
-        Bridge["yajra/laravel-pdo-via-oci8 Bridge"]
+        Bridge["yajra/laravel-pdo-<br>via-oci8 Bridge"]
         
         Routes --> Controllers
         Controllers --> Models
@@ -624,8 +624,8 @@ flowchart TD
 
     subgraph Oracle["Oracle Database 19c / 11g"]
         direction TB
-        Packages["PL/SQL Packages<br>pkg_users · pkg_appointments · pkg_pharmacy<br>pkg_ambulance · pkg_facilities · pkg_inventory"]
-        Schema["Tables · Sequences · Triggers<br>24 tables · 24 sequences · 24 triggers"]
+        Packages["PL/SQL Packages<br>pkg_users · pkg_appointments<br>pkg_pharmacy · pkg_ambulance<br>pkg_facilities · pkg_inventory"]
+        Schema["Tables · Sequences · Triggers<br>24 tables · 24 sequences<br>24 triggers"]
         
         Packages --> Schema
     end
