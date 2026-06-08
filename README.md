@@ -91,8 +91,8 @@ All core logic, tables, sequences, triggers, and data manipulation rules are def
 | **Sequences** | 24 auto-increment sequences |
 | **Triggers** | 24 BEFORE INSERT triggers |
 | **PL/SQL Packages** | 6 (Users, Appointments, Pharmacy, Ambulance, Facilities, Inventory) |
-| **Stored Procedures** | 12 across all packages |
-| **Indexes** | 6 performance-optimized indexes |
+| **Stored Procedures** | 16 across all packages |
+| **Indexes** | 7 performance-optimized indexes |
 | **Frontend** | Laravel 11 via OCI8 bridge |
 
 ---
