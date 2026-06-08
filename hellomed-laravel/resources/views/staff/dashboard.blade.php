@@ -8,6 +8,9 @@
             <a class="ghost-button" href="{{ route('admin.appointments.index') }}">Manage appointments</a>
             <a class="ghost-button" href="{{ route('admin.doctors.index') }}">Doctor schedules</a>
             <a class="ghost-button" href="{{ route('admin.articles.index') }}">Articles</a>
+            <a class="ghost-button" href="{{ route('staff.inventory.index') }}">📦 Inventory</a>
+            <a class="ghost-button" href="{{ route('staff.facilities.index') }}">🏥 Labs & OTs</a>
+            <a class="ghost-button" href="{{ route('staff.queue.index') }}">👥 Smart Queue</a>
             <a class="ghost-button" href="{{ route('staff.offline-appointments.create') }}" style="border-color:var(--primary); color:var(--primary); background:var(--surface);">➕ Book Offline Appointment</a>
             <a class="ghost-button" href="{{ route('staff.ambulance.index') }}" @if($pendingAmbulance > 0) style="border-color:var(--error-border); color:var(--error-text); background:var(--error-bg);" @endif>
                 🚑 Ambulance Dispatch @if($pendingAmbulance > 0) ({{ $pendingAmbulance }}) @endif
