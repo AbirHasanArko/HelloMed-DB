@@ -1,7 +1,7 @@
 <div align="center">
   <h1>🏥 HelloMed Database Architecture</h1>
   <p><b>A Comprehensive Oracle PL/SQL Schema for Hospital Management</b></p>
-  <p><i>21 relational tables · 4 PL/SQL packages · 21 sequences & triggers · Full seed data</i></p>
+  <p><i>24 relational tables · 6 PL/SQL packages · 24 sequences & triggers · Full seed data</i></p>
 
   [![Oracle](https://img.shields.io/badge/Oracle-19c-F80000?style=for-the-badge&logo=oracle&logoColor=white)](https://oracle.com)
   [![PL/SQL](https://img.shields.io/badge/PL/SQL-Packages-00758F?style=for-the-badge)](https://oracle.com)
@@ -437,6 +437,16 @@ Real-time ambulance request, dispatch, and resolution tracking.
 |---|---|---|
 | `ambulance_requests` | Emergency request lifecycle | `latitude`/`longitude` for GPS, `status` (pending → dispatched → resolved → cancelled) |
 
+### 6. Facilities & Inventory
+
+Management of hospital inventory items, Lab rooms, Operation Theatres, and their bookings.
+
+| Table | Purpose | Notable Columns |
+|---|---|---|
+| `inventory_items` | Manage staff inventory | `quantity`, `status` |
+| `facility_rooms` | Hospital labs and Operation Theatres | `capacity`, `room_type` |
+| `facility_bookings` | Booking of labs/OTs by doctors/staff | `start_time`, `end_time` |
+
 ---
 
 ## ⚙️ PL/SQL Packages in Detail
@@ -482,6 +492,24 @@ Handles the real-time emergency dispatch workflow.
 | `request_ambulance` | `p_user_id`, `p_patient_name`, `p_patient_phone`, `p_address`, `OUT p_request_id` | Logs an incoming emergency request with patient details and location |
 | `dispatch_ambulance` | `p_request_id`, `p_staff_id` | Sets status to `dispatched`, assigns a `staff_id`, and timestamps via `SYSTIMESTAMP` |
 | `resolve_request` | `p_request_id` | Closes the incident as `resolved` with a final resolution timestamp |
+
+### 5. `pkg_facilities` ([`09_pkg_facilities.sql`](oracle_plsql/09_pkg_facilities.sql))
+
+Handles the booking logic for Labs and Operation Theatres with strict time conflict resolution.
+
+| Procedure | Parameters | Description |
+|---|---|---|
+| `book_facility` | `p_facility_room_id`, `p_appointment_id`, `p_user_id`, `p_doctor_id`, `p_start_time`, `p_end_time`, `OUT p_booking_id` | Checks for overlapping time slots and books the room if available, otherwise raises application error `-20003` |
+| `update_booking_status` | `p_booking_id`, `p_status` | Updates the status of the booking |
+
+### 6. `pkg_inventory` ([`10_pkg_inventory.sql`](oracle_plsql/10_pkg_inventory.sql))
+
+A simple inventory system for hospital supplies.
+
+| Procedure | Parameters | Description |
+|---|---|---|
+| `add_item` | `p_name`, `p_category`, `p_quantity`, `p_unit`, `p_location`, `OUT p_item_id` | Registers a new supply/inventory item |
+| `update_stock` | `p_item_id`, `p_quantity_change` | Uses row locks (`FOR UPDATE`) to safely modify stock levels via delta changes and calculates dynamic status based on new threshold |
 
 ### Package Design Philosophy
 
@@ -577,7 +605,7 @@ Because this schema was originally designed around Oracle 11g compatibility (whe
 │  └──────────────────────┬───────────────────────────────┘   │
 │  ┌──────────────────────▼───────────────────────────────┐   │
 │  │            Tables · Sequences · Triggers              │   │
-│  │         21 tables · 21 sequences · 21 triggers        │   │
+│  │         24 tables · 24 sequences · 24 triggers        │   │
 │  └──────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -684,8 +712,8 @@ sqlplus -s hellomed/password123 @run_all.sql
 
 | Step | Script | What It Creates |
 |---|---|---|
-| 1 | `01_schema.sql` | All 21 relational tables with constraints and indexes |
-| 2 | `02_sequences_triggers.sql` | 21 sequences + 21 BEFORE INSERT triggers for auto-PK and timestamps |
+| 1 | `01_schema.sql` | All 24 relational tables with constraints and indexes |
+| 2 | `02_sequences_triggers.sql` | 24 sequences + 24 BEFORE INSERT triggers for auto-PK and timestamps |
 | 3 | `03_pkg_users.sql` | PL/SQL Package for user management (3 procedures) |
 | 4 | `04_pkg_appointments.sql` | PL/SQL Package for appointment booking (3 procedures) |
 | 5 | `05_pkg_pharmacy.sql` | PL/SQL Package for inventory & ordering (3 procedures) |
@@ -792,8 +820,8 @@ Expected output:
 ```
 HelloMed-DB/
 ├── oracle_plsql/                      # 🗄  All database scripts
-│   ├── 01_schema.sql                  #    DDL: 21 tables, constraints, indexes
-│   ├── 02_sequences_triggers.sql      #    21 sequences + 21 BEFORE INSERT triggers
+│   ├── 01_schema.sql                  #    DDL: 24 tables, constraints, indexes
+│   ├── 02_sequences_triggers.sql      #    24 sequences + 24 BEFORE INSERT triggers
 │   ├── 03_pkg_users.sql               #    PL/SQL: User management package
 │   ├── 04_pkg_appointments.sql        #    PL/SQL: Appointment booking package
 │   ├── 05_pkg_pharmacy.sql            #    PL/SQL: Pharmacy & inventory package
