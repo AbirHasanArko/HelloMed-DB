@@ -28,6 +28,7 @@
   - [Domain Modules](#domain-modules)
   - [Complete Table Inventory](#complete-table-inventory)
   - [ER Diagrams](#er-diagrams)
+  - [Detailed Schema](#detailed-schema)
 - [DBMS: Oracle-Specific Design](#-dbms-oracle-specific-design)
   - [Why Oracle?](#why-oracle)
   - [Version Compatibility](#version-compatibility)
@@ -301,6 +302,10 @@ The database is designed to handle all daily operations of a hospital, organized
 The database schema is highly relational and divided into five logical modules for visual clarity. Each module has its own entity-relationship diagram with full column-level detail.
 
 👉 **[View the Complete Entity-Relationship (ER) Diagrams → `ER_DIAGRAMS.md`](ER_DIAGRAMS.md)**
+
+### Detailed Schema
+
+👉 **[View the Detailed Database Schema → `DATABASE_SCHEMA.md`](DATABASE_SCHEMA.md)**
 
 ---
 
