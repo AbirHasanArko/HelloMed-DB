@@ -36,6 +36,13 @@ class OfflineAppointmentController extends Controller
             'scheduled_date' => 'required|date|after_or_equal:today',
             'scheduled_time' => 'required|date_format:H:i',
             'reason' => 'required|string|max:1000',
+            'date_of_birth' => 'nullable|date|before:today',
+            'gender' => 'nullable|string|in:male,female,other',
+            'height_cm' => 'nullable|numeric|min:30|max:300',
+            'weight_kg' => 'nullable|numeric|min:1|max:500',
+            'known_conditions' => 'nullable|string|max:4000',
+            'allergies' => 'nullable|string|max:4000',
+            'medical_notes' => 'nullable|string|max:4000',
         ]);
 
         return DB::transaction(function () use ($request, $validated) {
@@ -49,6 +56,19 @@ class OfflineAppointmentController extends Controller
                     'role' => 'patient',
                 ]);
             }
+
+            $user->patientProfile()->updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'date_of_birth' => $validated['date_of_birth'] ?? null,
+                    'gender' => $validated['gender'] ?? null,
+                    'height_cm' => $validated['height_cm'] ?? null,
+                    'weight_kg' => $validated['weight_kg'] ?? null,
+                    'known_conditions' => $validated['known_conditions'] ?? null,
+                    'allergies' => $validated['allergies'] ?? null,
+                    'medical_notes' => $validated['medical_notes'] ?? null,
+                ]
+            );
 
             $doctor = Doctor::findOrFail($validated['doctor_id']);
             $scheduledFor = Carbon::parse($validated['scheduled_date'] . ' ' . $validated['scheduled_time']);
