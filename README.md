@@ -245,6 +245,11 @@ A summary of which roles can access which system areas:
 | Walk-in appointments | — | — | — | ✅ | — | — |
 | Medicine catalog CRUD | — | — | — | — | — | ✅ |
 | Order fulfillment | — | — | — | — | — | ✅ |
+| Inventory management | — | — | — | ✅ | — | — |
+| Facility (Labs/OT) Booking | — | — | ✅ | ✅ | — | — |
+| Facility Room CRUD | — | — | — | — | ✅ | — |
+| Smart Queue & Token System | — | — | — | ✅ | — | — |
+| Reports & Analytics | — | — | ✅ | — | ✅ | — |
 
 ---
 
