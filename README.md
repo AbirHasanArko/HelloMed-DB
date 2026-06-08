@@ -42,7 +42,7 @@
   - [Digital E-Pharmacy](#3-digital-e-pharmacy)
   - [Content CMS & Community Q&A](#4-content-cms--community-qa)
   - [Emergency Dispatch](#5-emergency-dispatch)
-- [PL/SQL Packages in Detail](#-plsql-packages-in-detail)
+- [PL/SQL Packages in Detail](#plsql-packages-in-detail)
   - [pkg_users](#1-pkg_users-03_pkg_userssql)
   - [pkg_appointments](#2-pkg_appointments-04_pkg_appointmentssql)
   - [pkg_pharmacy](#3-pkg_pharmacy-05_pkg_pharmacysql)
@@ -470,7 +470,7 @@ Management of hospital inventory items, Lab rooms, Operation Theatres, and their
 
 ---
 
-## ⚙️ PL/SQL Packages in Detail
+## PL/SQL Packages in Detail
 
 The database is designed to offload heavy business logic to the database layer itself via Oracle PL/SQL Packages. This ensures data integrity, reduces application round trips, and encapsulates critical workflows inside the database engine.
 
