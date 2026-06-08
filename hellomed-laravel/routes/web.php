@@ -209,6 +209,12 @@ Route::prefix('admin')
         Route::put('/doctors/{doctor}', [AdminDoctorController::class, 'update'])->name('doctors.update');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
         Route::get('/audit-logs/export', [AuditLogController::class, 'export'])->name('audit-logs.export');
+        
+        Route::get('/facility-rooms', [\App\Http\Controllers\Admin\AdminFacilityRoomController::class, 'index'])->name('facility_rooms.index');
+        Route::get('/facility-rooms/create', [\App\Http\Controllers\Admin\AdminFacilityRoomController::class, 'create'])->name('facility_rooms.create');
+        Route::post('/facility-rooms', [\App\Http\Controllers\Admin\AdminFacilityRoomController::class, 'store'])->name('facility_rooms.store');
+        Route::get('/facility-rooms/{facilityRoom}/edit', [\App\Http\Controllers\Admin\AdminFacilityRoomController::class, 'edit'])->name('facility_rooms.edit');
+        Route::put('/facility-rooms/{facilityRoom}', [\App\Http\Controllers\Admin\AdminFacilityRoomController::class, 'update'])->name('facility_rooms.update');
 
         Route::middleware('role:admin')->group(function (): void {
             Route::get('/payments', [AdminPaymentController::class, 'index'])->name('payments.index');
