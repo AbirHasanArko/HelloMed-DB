@@ -862,6 +862,7 @@ HelloMed-DB/
 │   ├── composer.json                  #    PHP dependencies
 │   └── ...
 ├── ER_DIAGRAMS.md                     # 📐  Complete ER diagrams (Mermaid)
+├── DATABASE_SCHEMA.md                 # 📐  Complete database schema
 └── README.md                          # 📖  This file
 ```
 
