@@ -96,6 +96,22 @@ All core logic, tables, sequences, triggers, and data manipulation rules are def
 
 ---
 
+## 🛠️ Technology Stack
+
+**Frontend Web Application:**
+- **Framework**: Laravel 11.x (PHP 8.2+)
+- **Styling**: Vanilla CSS (Custom UI Design System, no external CSS frameworks)
+- **Templating**: Blade Templating Engine
+- **Assets**: Standard JavaScript and CSS
+
+**Backend Database & Core Logic:**
+- **RDBMS**: Oracle Database 11g / 19c
+- **Programming Logic**: Oracle PL/SQL (Packages, Procedures, Functions, Triggers)
+- **Database Driver**: `yajra/laravel-pdo-via-oci8` (OCI8 PHP Extension)
+- **Web Server**: Built-in PHP Server / Apache / Nginx
+
+---
+
 ## 👥 Role-Based Features & Capabilities
 
 HelloMed implements a **Role-Based Access Control (RBAC)** system with five distinct user roles, each enforced at both the database level (via the `users.role` column) and the application level (via Laravel's `EnsureRole` middleware). Every route group is gated by its required role(s), ensuring strict separation of privileges.
