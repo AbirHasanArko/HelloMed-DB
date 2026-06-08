@@ -1,14 +1,18 @@
 @extends('layouts.app')
 
-@section('title', 'Book Facility')
-
 @section('content')
-<div class="container mx-auto px-4 py-8 max-w-2xl">
-    <h1 class="text-3xl font-bold text-gray-800 mb-6">Book Lab / OT</h1>
+<section class="section" style="max-width: 600px;">
+    <div class="nav-inner" style="padding: 0 0 16px;">
+        <div>
+            <h1>Book a Facility Room</h1>
+            <p>Schedule a time slot for a Lab or Operation Theatre.</p>
+        </div>
+        <a class="ghost-button" href="{{ route('staff.facilities.index') }}">← Back</a>
+    </div>
 
     @if($errors->any())
-        <div class="bg-red-100 text-red-700 px-4 py-3 rounded mb-4">
-            <ul class="list-disc ml-5">
+        <div class="card" style="border-left: 4px solid var(--error-text); margin-bottom: 20px;">
+            <ul style="margin:0; color:var(--error-text); padding-left:20px;">
                 @foreach($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
@@ -16,31 +20,37 @@
         </div>
     @endif
 
-    <div class="bg-white rounded-lg shadow p-6">
-        <form action="{{ route('staff.facilities.store') }}" method="POST">
-            @csrf
-            <div class="mb-4">
-                <label class="block text-gray-700 font-bold mb-2">Select Facility Room</label>
-                <select name="facility_room_id" class="w-full border rounded px-3 py-2" required>
-                    <option value="">-- Select Room --</option>
-                    @foreach($rooms as $room)
-                        <option value="{{ $room->id }}">{{ $room->room_number }} ({{ $room->room_type }})</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label class="block text-gray-700 font-bold mb-2">Start Time</label>
-                    <input type="datetime-local" name="start_time" class="w-full border rounded px-3 py-2" required>
-                </div>
-                <div>
-                    <label class="block text-gray-700 font-bold mb-2">End Time</label>
-                    <input type="datetime-local" name="end_time" class="w-full border rounded px-3 py-2" required>
-                </div>
-            </div>
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Book Facility</button>
-        </form>
-    </div>
-</div>
-@endsection
+    <form action="{{ route('staff.facilities.store') }}" method="POST" class="card">
+        @csrf
 
+        <label>
+            Facility Room
+            <select name="facility_room_id" required>
+                <option value="" disabled selected>Select a room...</option>
+                @foreach($rooms as $room)
+                    <option value="{{ $room->id }}" @selected(old('facility_room_id') == $room->id)>
+                        {{ $room->room_number }} ({{ $room->room_type }} - Cap: {{ $room->capacity }})
+                    </option>
+                @endforeach
+            </select>
+            @error('facility_room_id')<span style="color:var(--error-text);font-size:13px;">{{ $message }}</span>@enderror
+        </label>
+
+        <label>
+            Start Time
+            <input type="datetime-local" name="start_time" value="{{ old('start_time') }}" required>
+            @error('start_time')<span style="color:var(--error-text);font-size:13px;">{{ $message }}</span>@enderror
+        </label>
+
+        <label>
+            End Time
+            <input type="datetime-local" name="end_time" value="{{ old('end_time') }}" required>
+            @error('end_time')<span style="color:var(--error-text);font-size:13px;">{{ $message }}</span>@enderror
+        </label>
+
+        <div style="margin-top: 24px;">
+            <button type="submit" class="button">Book Room</button>
+        </div>
+    </form>
+</section>
+@endsection

@@ -4,7 +4,7 @@
 <section class="section">
     <div class="meta-row" style="margin-bottom: 24px;">
         <a class="ghost-button" href="{{ route('admin.dashboard') }}">← Back to dashboard</a>
-        <a class="button" href="{{ route('admin.facility_rooms.create') }}">➕ Add Facility Room</a>
+        <a class="button" href="{{ route('admin.facility_rooms.create') }}">Add facility room</a>
     </div>
 
     <h1>Manage Facility Rooms</h1>

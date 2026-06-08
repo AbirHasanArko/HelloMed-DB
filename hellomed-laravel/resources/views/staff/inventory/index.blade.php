@@ -1,54 +1,63 @@
 @extends('layouts.app')
 
-@section('title', 'Inventory Management')
-
 @section('content')
-<div class="container mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Inventory Management</h1>
-        <a href="{{ route('staff.inventory.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded">Add New Item</a>
+<section class="section">
+    <div class="nav-inner" style="padding: 0 0 16px;">
+        <div>
+            <h1>Inventory management</h1>
+            <p>Manage hospital inventory, stock levels, and item status.</p>
+        </div>
+        <a class="button" href="{{ route('staff.inventory.create') }}">Add inventory item</a>
     </div>
 
     @if(session('success'))
-        <div class="bg-green-100 text-green-700 px-4 py-3 rounded mb-4">{{ session('success') }}</div>
+        <div class="card" style="border-left: 4px solid var(--success-text); margin-bottom: 20px;">
+            <p style="margin:0; color:var(--success-text); font-weight:600;">{{ session('success') }}</p>
+        </div>
     @endif
 
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-        <table class="min-w-full">
-            <thead class="bg-gray-50">
+    <div class="card" style="padding:0; overflow:hidden;">
+        <table class="table" style="margin:0;">
+            <thead>
                 <tr>
-                    <th class="px-6 py-3 text-left">Name</th>
-                    <th class="px-6 py-3 text-left">Category</th>
-                    <th class="px-6 py-3 text-left">Quantity</th>
-                    <th class="px-6 py-3 text-left">Status</th>
-                    <th class="px-6 py-3 text-left">Action</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Quantity</th>
+                    <th>Status</th>
+                    <th style="width:120px;">Action</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
-                @foreach($items as $item)
+            <tbody>
+                @forelse($items as $item)
                 <tr>
-                    <td class="px-6 py-4">{{ $item->name }}</td>
-                    <td class="px-6 py-4">{{ $item->category }}</td>
-                    <td class="px-6 py-4">{{ $item->quantity }} {{ $item->unit }}</td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 text-xs rounded-full 
-                            @if($item->status == 'available') bg-green-100 text-green-800
-                            @elseif($item->status == 'low_stock') bg-yellow-100 text-yellow-800
-                            @else bg-red-100 text-red-800 @endif">
-                            {{ ucfirst(str_replace('_', ' ', $item->status)) }}
-                        </span>
+                    <td><strong>{{ $item->name }}</strong></td>
+                    <td>{{ $item->category }}</td>
+                    <td>{{ $item->quantity }} {{ $item->unit }}</td>
+                    <td>
+                        @if($item->status === 'available')
+                            <span class="muted" style="color:var(--success-text);">Available</span>
+                        @elseif($item->status === 'low_stock')
+                            <span class="muted" style="color:#d97706;">Low stock</span>
+                        @else
+                            <span class="muted" style="color:var(--error-text);">Out of stock</span>
+                        @endif
                     </td>
-                    <td class="px-6 py-4">
-                        <a href="{{ route('staff.inventory.edit', $item->id) }}" class="text-blue-600 hover:underline">Update Stock</a>
+                    <td>
+                        <a class="ghost-button" href="{{ route('staff.inventory.edit', $item->id) }}">Update stock</a>
                     </td>
                 </tr>
-                @endforeach
+                @empty
+                <tr>
+                    <td colspan="5" class="muted" style="text-align:center; padding: 32px;">No inventory items found.</td>
+                </tr>
+                @endforelse
             </tbody>
         </table>
-        <div class="p-4">
-            {{ $items->links() }}
-        </div>
+        @if($items->hasPages())
+            <div style="padding: 16px; border-top: 1px solid var(--border);">
+                {{ $items->links() }}
+            </div>
+        @endif
     </div>
-</div>
+</section>
 @endsection
-

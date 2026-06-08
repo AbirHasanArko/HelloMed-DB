@@ -1,44 +1,55 @@
 @extends('layouts.app')
 
-@section('title', 'Facility Management (Lab & OT)')
-
 @section('content')
-<div class="container mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Facility Management (Lab & OT)</h1>
-        <a href="{{ route('staff.facilities.create') }}" class="bg-blue-600 text-white px-4 py-2 rounded">Book Facility</a>
+<section class="section">
+    <div class="nav-inner" style="padding: 0 0 16px;">
+        <div>
+            <h1>Labs & Operation Theatres</h1>
+            <p>View facility rooms and their schedule for today.</p>
+        </div>
+        <a class="button" href="{{ route('staff.facilities.create') }}">Book a facility</a>
     </div>
 
     @if(session('success'))
-        <div class="bg-green-100 text-green-700 px-4 py-3 rounded mb-4">{{ session('success') }}</div>
+        <div class="card" style="border-left: 4px solid var(--success-text); margin-bottom: 20px;">
+            <p style="margin:0; color:var(--success-text); font-weight:600;">{{ session('success') }}</p>
+        </div>
     @endif
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        @foreach($rooms as $room)
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-            <div class="bg-gray-100 px-4 py-3 border-b">
-                <h2 class="text-xl font-bold">{{ $room->room_number }}</h2>
-                <span class="text-sm text-gray-600">{{ $room->room_type }} (Cap: {{ $room->capacity }})</span>
-            </div>
-            <div class="p-4">
-                <h3 class="font-semibold text-gray-700 mb-2">Upcoming Bookings:</h3>
-                @if($room->bookings->count() > 0)
-                    <ul class="space-y-2 text-sm">
-                        @foreach($room->bookings as $booking)
-                        <li class="border-b pb-2">
-                            <span class="font-bold">{{ $booking->start_time->format('h:i A') }} - {{ $booking->end_time->format('h:i A') }}</span>
-                            <br>
-                            Status: <span class="text-blue-600">{{ ucfirst($booking->status) }}</span>
-                        </li>
-                        @endforeach
-                    </ul>
-                @else
-                    <p class="text-gray-500 text-sm">No bookings scheduled today.</p>
-                @endif
+    <div class="grid cols-2">
+        @forelse($rooms as $room)
+        <div class="card">
+            <h3 style="margin-top:0; margin-bottom:8px;">{{ $room->room_number }}</h3>
+            <p class="muted" style="margin-bottom:16px;">{{ $room->room_type }} • Capacity: {{ $room->capacity }}</p>
+            
+            <h4 style="margin-bottom:8px; font-size:14px; text-transform:uppercase; color:var(--muted);">Today's Bookings</h4>
+            <div style="background:var(--surface); padding:12px; border-radius:8px;">
+                @forelse($room->bookings as $booking)
+                    <div style="padding:8px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between;">
+                        <span style="font-weight:500; color:var(--text);">
+                            {{ \Carbon\Carbon::parse($booking->start_time)->format('h:i A') }} - 
+                            {{ \Carbon\Carbon::parse($booking->end_time)->format('h:i A') }}
+                        </span>
+                        <span class="muted" style="font-size:13px;">
+                            @if($booking->status == 'scheduled')
+                                <span style="color:var(--primary);">Scheduled</span>
+                            @elseif($booking->status == 'in_progress')
+                                <span style="color:var(--success-text);">In Progress</span>
+                            @else
+                                {{ ucfirst($booking->status) }}
+                            @endif
+                        </span>
+                    </div>
+                @empty
+                    <p class="muted" style="margin:0; font-size:14px; text-align:center;">No bookings today.</p>
+                @endforelse
             </div>
         </div>
-        @endforeach
+        @empty
+        <div class="card" style="grid-column: span 2;">
+            <p class="muted" style="text-align:center;">No facility rooms available.</p>
+        </div>
+        @endforelse
     </div>
-</div>
+</section>
 @endsection
-

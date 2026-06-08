@@ -1,29 +1,29 @@
 @extends('layouts.app')
 
-@section('title', 'Reports & Analytics')
-
 @section('content')
-<div class="container mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">My Analytics Dashboard</h1>
-        <form method="GET" class="flex gap-4">
-            <input type="date" name="start_date" value="{{ $startDate }}" class="border rounded px-3 py-2">
-            <input type="date" name="end_date" value="{{ $endDate }}" class="border rounded px-3 py-2">
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Filter</button>
+<section class="section">
+    <div class="nav-inner" style="padding: 0 0 16px;">
+        <div>
+            <h1>My Analytics</h1>
+            <p>View your appointment volume and consultation revenue.</p>
+        </div>
+        <form method="GET" style="display:flex; gap:12px; align-items:center;">
+            <input type="date" name="start_date" value="{{ $startDate }}" style="padding:8px; border:1px solid var(--border); border-radius:4px;">
+            <input type="date" name="end_date" value="{{ $endDate }}" style="padding:8px; border:1px solid var(--border); border-radius:4px;">
+            <button type="submit" class="button">Filter</button>
         </form>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold text-gray-600 mb-2">Total Booked Appointments</h2>
-            <p class="text-4xl font-bold text-blue-600">{{ $totalAppointments }}</p>
+    <div class="grid cols-2">
+        <div class="stat card">
+            <span class="muted">Total Appointments</span>
+            <strong style="font-size:32px; color:var(--primary);">{{ $totalAppointments }}</strong>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold text-gray-600 mb-2">Completed Consultations</h2>
-            <p class="text-4xl font-bold text-green-600">{{ $completedAppointments }}</p>
+        <div class="stat card">
+            <span class="muted">My Consultation Revenue</span>
+            <strong style="font-size:32px; color:var(--success-text);">${{ number_format($totalRevenue, 2) }}</strong>
         </div>
     </div>
-</div>
+</section>
 @endsection
-

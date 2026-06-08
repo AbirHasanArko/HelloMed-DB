@@ -4,8 +4,8 @@
 <section class="section">
     <h1>Doctor dashboard</h1>
     <div class="meta-row" style="margin-bottom:16px;">
-        <a class="ghost-button" href="{{ route('doctor.reports.index') }}">📊 My Analytics</a>
-        <a class="ghost-button" href="{{ route('doctor.facilities.index') }}">🏥 Book Lab/OT</a>
+        <a class="ghost-button" href="{{ route('doctor.reports.index') }}">My Analytics</a>
+        <a class="ghost-button" href="{{ route('doctor.facilities.index') }}">Book Lab/OT</a>
         <a class="ghost-button" href="{{ route('doctor.articles.index') }}">My articles</a>
         <a class="ghost-button" href="{{ route('doctor.articles.create') }}">Write article</a>
     </div>
