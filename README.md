@@ -362,7 +362,6 @@ BEGIN
     :NEW.updated_at := SYSTIMESTAMP;
 END;
 ```
-
 ### Timestamp Strategy
 
 - All tables use `SYSTIMESTAMP` for timezone-aware UTC timestamps
@@ -853,6 +852,8 @@ HelloMed-DB/
 │   ├── 06_pkg_ambulance.sql           #    PL/SQL: Emergency dispatch package
 │   ├── 07_seed_data.sql               #    Demo seed data
 │   ├── 08_test_execution.sql          #    End-to-end test script
+│   ├── 09_pkg_facilities.sql          #    PL/SQL: Facility booking package
+│   ├── 10_pkg_inventory.sql           #    PL/SQL: Inventory management package
 │   └── run_all.sql                    #    Master execution script
 ├── hellomed-laravel/                  # 🌐  Laravel web application
 │   ├── app/                           #    Application logic (Controllers, Models)
