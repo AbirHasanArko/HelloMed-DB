@@ -4,11 +4,11 @@
 
 -- Users
 -- Note: In a real system, passwords should be hashed using bcrypt or similar.
-INSERT INTO users (name, email, password, role) VALUES ('Admin User', 'admin@hellomed.test', 'password123', 'admin');
-INSERT INTO users (name, email, password, role) VALUES ('Staff User', 'staff@hellomed.test', 'password123', 'staff');
-INSERT INTO users (name, email, password, role) VALUES ('Pharmacist User', 'pharmacist@hellomed.test', 'password123', 'pharmacist');
-INSERT INTO users (name, email, password, role) VALUES ('Patient User', 'patient@hellomed.test', 'password123', 'patient');
-INSERT INTO users (name, email, password, role) VALUES ('Doctor User', 'doctor@hellomed.test', 'password123', 'doctor');
+INSERT INTO users (name, email, password, role) VALUES ('Admin User', 'admin@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'admin');
+INSERT INTO users (name, email, password, role) VALUES ('Staff User', 'staff@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'staff');
+INSERT INTO users (name, email, password, role) VALUES ('Pharmacist User', 'pharmacist@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'pharmacist');
+INSERT INTO users (name, email, password, role) VALUES ('Patient User', 'patient@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'patient');
+INSERT INTO users (name, email, password, role) VALUES ('Doctor User', 'doctor@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
 
 -- Departments
 INSERT INTO departments (name, slug, description, service_scope) VALUES ('Cardiology', 'cardiology', 'Heart and blood vessel diseases.', 'both');
