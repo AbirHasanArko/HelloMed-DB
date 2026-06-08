@@ -854,12 +854,6 @@ HelloMed-DB/
 │   ├── 07_seed_data.sql               #    Demo seed data
 │   ├── 08_test_execution.sql          #    End-to-end test script
 │   └── run_all.sql                    #    Master execution script
-├── er-diagram-images/                 # 📊  Rendered ER diagram PNGs
-│   ├── 1 - Core & Authentication System.png
-│   ├── 2 - Medical Services & Appointments.png
-│   ├── 3 - Digital E-Pharmacy.png
-│   ├── 4 - Content CMS & Community Q&A.png
-│   └── 5 - Emergency Dispatch.png
 ├── hellomed-laravel/                  # 🌐  Laravel web application
 │   ├── app/                           #    Application logic (Controllers, Models)
 │   ├── config/                        #    Framework configuration
