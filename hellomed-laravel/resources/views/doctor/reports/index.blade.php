@@ -1,4 +1,4 @@
-@extends('layouts.doctor')
+@extends('layouts.app')
 
 @section('title', 'Reports & Analytics')
 
@@ -26,3 +26,4 @@
     </div>
 </div>
 @endsection
+

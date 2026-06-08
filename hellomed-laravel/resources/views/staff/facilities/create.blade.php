@@ -1,4 +1,4 @@
-@extends('layouts.staff')
+@extends('layouts.app')
 
 @section('title', 'Book Facility')
 
@@ -43,3 +43,4 @@
     </div>
 </div>
 @endsection
+

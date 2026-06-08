@@ -1,4 +1,4 @@
-@extends('layouts.staff')
+@extends('layouts.app')
 
 @section('title', 'Smart Queue Dashboard')
 
@@ -65,3 +65,4 @@
     </div>
 </div>
 @endsection
+

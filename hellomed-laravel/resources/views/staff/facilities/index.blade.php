@@ -1,4 +1,4 @@
-@extends('layouts.staff')
+@extends('layouts.app')
 
 @section('title', 'Facility Management (Lab & OT)')
 
@@ -41,3 +41,4 @@
     </div>
 </div>
 @endsection
+

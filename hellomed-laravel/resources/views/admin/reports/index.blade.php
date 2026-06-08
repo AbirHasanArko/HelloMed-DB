@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.app')
 
 @section('title', 'Reports & Analytics')
 
@@ -31,3 +31,4 @@
     </div>
 </div>
 @endsection
+

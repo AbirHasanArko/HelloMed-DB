@@ -1,4 +1,4 @@
-@extends('layouts.staff')
+@extends('layouts.app')
 
 @section('title', 'Add Inventory Item')
 
@@ -36,3 +36,4 @@
     </div>
 </div>
 @endsection
+
