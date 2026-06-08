@@ -389,3 +389,50 @@ erDiagram
     USERS ||--o{ AMBULANCE_REQUESTS : "requests"
     USERS ||--o{ AMBULANCE_REQUESTS : "dispatches"
 ```
+
+---
+
+## 6. Facilities & Inventory
+Management of hospital inventory items, Lab rooms, Operation Theatres, and their bookings.
+
+```mermaid
+erDiagram
+    INVENTORY_ITEMS {
+        NUMBER id PK
+        VARCHAR2 name
+        VARCHAR2 category
+        NUMBER quantity
+        VARCHAR2 unit
+        VARCHAR2 location
+        VARCHAR2 status
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    FACILITY_ROOMS {
+        NUMBER id PK
+        VARCHAR2 room_number
+        VARCHAR2 room_type
+        NUMBER capacity
+        NUMBER is_active
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+    FACILITY_BOOKINGS {
+        NUMBER id PK
+        NUMBER facility_room_id FK
+        NUMBER appointment_id FK "Nullable"
+        NUMBER user_id FK "Nullable Patient"
+        NUMBER doctor_id FK "Nullable"
+        TIMESTAMP start_time
+        TIMESTAMP end_time
+        VARCHAR2 status
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    FACILITY_ROOMS ||--o{ FACILITY_BOOKINGS : "booked via"
+    APPOINTMENTS ||--o{ FACILITY_BOOKINGS : "requires"
+    USERS ||--o{ FACILITY_BOOKINGS : "undergoes"
+    DOCTORS ||--o{ FACILITY_BOOKINGS : "performs in"
+```
+

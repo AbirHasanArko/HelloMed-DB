@@ -86,10 +86,10 @@ All core logic, tables, sequences, triggers, and data manipulation rules are def
 | Metric | Value |
 |---|---|
 | **DBMS** | Oracle Database 19c (11g compatible) |
-| **Tables** | 21 relational tables |
-| **Sequences** | 21 auto-increment sequences |
-| **Triggers** | 21 BEFORE INSERT triggers |
-| **PL/SQL Packages** | 4 (Users, Appointments, Pharmacy, Ambulance) |
+| **Tables** | 24 relational tables |
+| **Sequences** | 24 auto-increment sequences |
+| **Triggers** | 24 BEFORE INSERT triggers |
+| **PL/SQL Packages** | 6 (Users, Appointments, Pharmacy, Ambulance, Facilities, Inventory) |
 | **Stored Procedures** | 12 across all packages |
 | **Indexes** | 6 performance-optimized indexes |
 | **Frontend** | Laravel 11 via OCI8 bridge |
@@ -156,6 +156,8 @@ Authenticated users with the `doctor` role — gated by `middleware('role:doctor
 | 📰 Author Articles | Write, edit, and manage health articles for the CMS |
 | 💬 Appointment Chat | Communicate with patients before/during/after consultations |
 | 💡 Answer Q&A | Provide official doctor-verified answers to patient questions |
+| 🏥 Facility Booking | Book Labs and Operation Theatres for patient procedures |
+| 📊 Analytics | View consultation analytics and completed appointments |
 
 ### Admin
 
@@ -183,6 +185,9 @@ Authenticated users with the `staff` role — gated by `middleware('role:staff')
 | 📊 Staff Dashboard | Overview of daily tasks and pending actions |
 | 🚑 Ambulance Dispatch | View incoming ambulance requests, dispatch, and resolve incidents |
 | 📅 Offline Appointments | Create walk-in appointment bookings on behalf of patients |
+| 📦 Inventory Management | Manage hospital inventory items, stock levels, and locations |
+| 🏥 Facility Management | Book Lab and Operation Theatre rooms |
+| 👥 Smart Queue | Monitor and update the live status of patient queues |
 | 📊 Admin Panel Access | Shared access to department, doctor, appointment, and article management (via `role:admin,staff` middleware) |
 
 ### Pharmacist
@@ -239,11 +244,12 @@ The database is designed to handle all daily operations of a hospital, organized
 | 3 | **E-Pharmacy** | Medicine catalog, inventory, ordering pipeline | `medicines`, `medicine_orders`, `medicine_order_items` |
 | 4 | **Content & Community** | Health article CMS, Q&A forum | `article_categories`, `articles`, `article_comments`, `qna_questions`, `qna_answers` |
 | 5 | **Emergency Dispatch** | Ambulance request, dispatch, and resolution tracking | `ambulance_requests` |
+| 6 | **Facilities & Inventory** | Labs, OT, and general staff-managed inventory | `inventory_items`, `facility_rooms`, `facility_bookings` |
 
 ### Complete Table Inventory
 
 <details>
-<summary><b>Click to expand — All 21 tables with column counts and storage types</b></summary>
+<summary><b>Click to expand — All 24 tables with column counts and storage types</b></summary>
 
 | # | Table Name | Columns | Key Data Types | Foreign Keys |
 |---|---|---|---|---|
@@ -268,6 +274,9 @@ The database is designed to handle all daily operations of a hospital, organized
 | 19 | `article_comments` | 6 | `NUMBER`, `CLOB` | `articles(id)`, `users(id)` |
 | 20 | `qna_questions` | 6 | `VARCHAR2`, `CLOB` | `users(id)` |
 | 21 | `qna_answers` | 7 | `CLOB`, `NUMBER(1)` | `qna_questions(id)`, `users(id)` |
+| 22 | `inventory_items` | 10 | `VARCHAR2`, `NUMBER` | — |
+| 23 | `facility_rooms` | 8 | `VARCHAR2`, `NUMBER` | — |
+| 24 | `facility_bookings` | 11 | `VARCHAR2`, `TIMESTAMP` | `facility_rooms(id)`, `appointments(id)`, `users(id)`, `doctors(id)` |
 
 </details>
 

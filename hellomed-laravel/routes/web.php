@@ -151,6 +151,16 @@ Route::prefix('staff')
         Route::patch('/ambulance/{ambulanceRequest}', [\App\Http\Controllers\Staff\AmbulanceController::class, 'update'])->name('ambulance.update');
         Route::get('/offline-appointments', [\App\Http\Controllers\Staff\OfflineAppointmentController::class, 'create'])->name('offline-appointments.create');
         Route::post('/offline-appointments', [\App\Http\Controllers\Staff\OfflineAppointmentController::class, 'store'])->name('offline-appointments.store');
+        Route::get('/inventory', [\App\Http\Controllers\Staff\InventoryController::class, 'index'])->name('inventory.index');
+        Route::get('/inventory/create', [\App\Http\Controllers\Staff\InventoryController::class, 'create'])->name('inventory.create');
+        Route::post('/inventory', [\App\Http\Controllers\Staff\InventoryController::class, 'store'])->name('inventory.store');
+        Route::get('/inventory/{item}/edit', [\App\Http\Controllers\Staff\InventoryController::class, 'edit'])->name('inventory.edit');
+        Route::put('/inventory/{item}', [\App\Http\Controllers\Staff\InventoryController::class, 'update'])->name('inventory.update');
+        Route::get('/facilities', [\App\Http\Controllers\Staff\FacilityController::class, 'index'])->name('facilities.index');
+        Route::get('/facilities/create', [\App\Http\Controllers\Staff\FacilityController::class, 'create'])->name('facilities.create');
+        Route::post('/facilities', [\App\Http\Controllers\Staff\FacilityController::class, 'store'])->name('facilities.store');
+        Route::get('/queue', [\App\Http\Controllers\Staff\QueueController::class, 'index'])->name('queue.index');
+        Route::patch('/queue/{appointment}', [\App\Http\Controllers\Staff\QueueController::class, 'updateStatus'])->name('queue.update');
     });
 
 Route::prefix('doctor')
@@ -168,6 +178,9 @@ Route::prefix('doctor')
         Route::get('/appointments/{appointment}', [DoctorAppointmentController::class, 'show'])->name('appointments.show');
         Route::patch('/appointments/{appointment}/meeting-link', [DoctorAppointmentController::class, 'updateMeetingLink'])->name('appointments.meeting-link.update');
         Route::patch('/appointments/{appointment}/prescription', [DoctorAppointmentController::class, 'updatePrescription'])->name('appointments.prescription.update');
+        Route::get('/facilities', [\App\Http\Controllers\Doctor\FacilityController::class, 'index'])->name('facilities.index');
+        Route::post('/facilities', [\App\Http\Controllers\Doctor\FacilityController::class, 'store'])->name('facilities.store');
+        Route::get('/reports', [\App\Http\Controllers\Doctor\ReportController::class, 'index'])->name('reports.index');
     });
 
 Route::prefix('admin')
@@ -175,6 +188,7 @@ Route::prefix('admin')
     ->middleware(['auth', 'role:admin,staff'])
     ->group(function (): void {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');
         Route::get('/appointments', [AdminAppointmentController::class, 'index'])->name('appointments.index');
         Route::patch('/appointments/{appointment}', [AdminAppointmentController::class, 'update'])->name('appointments.update');
         Route::get('/departments', [AdminDepartmentController::class, 'index'])->name('departments.index');

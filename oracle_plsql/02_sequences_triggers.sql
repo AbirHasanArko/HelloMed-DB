@@ -507,3 +507,74 @@ BEGIN
 END;
 /
 
+-- inventory_items
+CREATE SEQUENCE inventory_items_seq START WITH 1 INCREMENT BY 1;
+
+CREATE OR REPLACE TRIGGER inventory_items_trg
+BEFORE INSERT OR UPDATE ON inventory_items
+FOR EACH ROW
+BEGIN
+    IF INSERTING THEN
+        IF :NEW.id IS NULL THEN
+            :NEW.id := inventory_items_seq.NEXTVAL;
+        END IF;
+        IF :NEW.created_at IS NULL THEN
+            :NEW.created_at := SYSTIMESTAMP;
+        END IF;
+        IF :NEW.updated_at IS NULL THEN
+            :NEW.updated_at := SYSTIMESTAMP;
+        END IF;
+    END IF;
+    IF UPDATING THEN
+        :NEW.updated_at := SYSTIMESTAMP;
+    END IF;
+END;
+/
+
+-- facility_rooms
+CREATE SEQUENCE facility_rooms_seq START WITH 1 INCREMENT BY 1;
+
+CREATE OR REPLACE TRIGGER facility_rooms_trg
+BEFORE INSERT OR UPDATE ON facility_rooms
+FOR EACH ROW
+BEGIN
+    IF INSERTING THEN
+        IF :NEW.id IS NULL THEN
+            :NEW.id := facility_rooms_seq.NEXTVAL;
+        END IF;
+        IF :NEW.created_at IS NULL THEN
+            :NEW.created_at := SYSTIMESTAMP;
+        END IF;
+        IF :NEW.updated_at IS NULL THEN
+            :NEW.updated_at := SYSTIMESTAMP;
+        END IF;
+    END IF;
+    IF UPDATING THEN
+        :NEW.updated_at := SYSTIMESTAMP;
+    END IF;
+END;
+/
+
+-- facility_bookings
+CREATE SEQUENCE facility_bookings_seq START WITH 1 INCREMENT BY 1;
+
+CREATE OR REPLACE TRIGGER facility_bookings_trg
+BEFORE INSERT OR UPDATE ON facility_bookings
+FOR EACH ROW
+BEGIN
+    IF INSERTING THEN
+        IF :NEW.id IS NULL THEN
+            :NEW.id := facility_bookings_seq.NEXTVAL;
+        END IF;
+        IF :NEW.created_at IS NULL THEN
+            :NEW.created_at := SYSTIMESTAMP;
+        END IF;
+        IF :NEW.updated_at IS NULL THEN
+            :NEW.updated_at := SYSTIMESTAMP;
+        END IF;
+    END IF;
+    IF UPDATING THEN
+        :NEW.updated_at := SYSTIMESTAMP;
+    END IF;
+END;
+/

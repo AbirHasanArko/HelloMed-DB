@@ -24,6 +24,8 @@ class Appointment extends Model
         'status',
         'payment_method',
         'payment_status',
+        'token_number',
+        'queue_status',
         'online_meeting_link',
         'reason',
         'notes',

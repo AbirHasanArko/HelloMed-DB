@@ -108,6 +108,8 @@ CREATE TABLE appointments (
     status VARCHAR2(50) DEFAULT 'pending' NOT NULL CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled')),
     payment_method VARCHAR2(100) DEFAULT 'none' NOT NULL,
     payment_status VARCHAR2(100) DEFAULT 'not_required' NOT NULL,
+    token_number VARCHAR2(50),
+    queue_status VARCHAR2(50) DEFAULT 'waiting' NOT NULL CHECK (queue_status IN ('waiting', 'in_progress', 'completed', 'cancelled')),
     online_meeting_link VARCHAR2(1000),
     reason VARCHAR2(4000) NOT NULL,
     notes VARCHAR2(4000),
@@ -365,6 +367,44 @@ CREATE TABLE ambulance_requests (
     resolved_at TIMESTAMP,
     staff_id NUMBER REFERENCES users(id) ON DELETE SET NULL,
     notes VARCHAR2(4000),
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+
+-- 22. inventory_items
+CREATE TABLE inventory_items (
+    id NUMBER PRIMARY KEY,
+    name VARCHAR2(255) NOT NULL,
+    category VARCHAR2(255),
+    quantity NUMBER DEFAULT 0 NOT NULL,
+    unit VARCHAR2(50),
+    location VARCHAR2(255),
+    status VARCHAR2(50) DEFAULT 'available' NOT NULL CHECK (status IN ('available', 'low_stock', 'out_of_stock')),
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+
+-- 23. facility_rooms
+CREATE TABLE facility_rooms (
+    id NUMBER PRIMARY KEY,
+    room_number VARCHAR2(100) NOT NULL,
+    room_type VARCHAR2(100) NOT NULL CHECK (room_type IN ('Lab', 'Operation Theatre', 'General Ward', 'ICU')),
+    capacity NUMBER DEFAULT 1 NOT NULL,
+    is_active NUMBER(1) DEFAULT 1 NOT NULL CHECK (is_active IN (0, 1)),
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+
+-- 24. facility_bookings
+CREATE TABLE facility_bookings (
+    id NUMBER PRIMARY KEY,
+    facility_room_id NUMBER NOT NULL REFERENCES facility_rooms(id) ON DELETE CASCADE,
+    appointment_id NUMBER REFERENCES appointments(id) ON DELETE SET NULL,
+    user_id NUMBER REFERENCES users(id) ON DELETE SET NULL,
+    doctor_id NUMBER REFERENCES doctors(id) ON DELETE SET NULL,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP NOT NULL,
+    status VARCHAR2(50) DEFAULT 'scheduled' NOT NULL CHECK (status IN ('scheduled', 'in_progress', 'completed', 'cancelled')),
     created_at TIMESTAMP,
     updated_at TIMESTAMP
 );

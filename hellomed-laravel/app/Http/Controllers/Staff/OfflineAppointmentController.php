@@ -11,12 +11,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class OfflineAppointmentController extends Controller
 {
     public function create()
     {
-        // Get departments with active doctors
         $departments = Department::whereHas('doctors', function ($query) {
             $query->where('is_active', true);
         })->with(['doctors' => function ($query) {
@@ -39,7 +39,6 @@ class OfflineAppointmentController extends Controller
         ]);
 
         return DB::transaction(function () use ($request, $validated) {
-            // Find or create the user
             $user = User::where('email', $validated['patient_email'])->first();
             
             if (!$user) {
@@ -53,24 +52,52 @@ class OfflineAppointmentController extends Controller
 
             $doctor = Doctor::findOrFail($validated['doctor_id']);
             $scheduledFor = Carbon::parse($validated['scheduled_date'] . ' ' . $validated['scheduled_time']);
+            $scheduledForStr = $scheduledFor->format('Y-m-d H:i:s');
+            
+            $pdo = \Illuminate\Support\Facades\DB::getPdo();
+            $stmt = $pdo->prepare('BEGIN pkg_appointments.book_appointment(:user_id, :doctor_id, :department_id, :service_id, :patient_name, :patient_email, :patient_phone, :service_mode, :scheduled_for, :reason, :appointment_id); END;');
+            
+            $userId = $user->id;
+            $doctorId = $doctor->id;
+            $departmentId = $doctor->department_id;
+            $serviceId = null;
+            $patientName = $validated['patient_name'];
+            $patientEmail = $validated['patient_email'];
+            $patientPhone = $validated['patient_phone'];
+            $serviceMode = 'offline';
+            $reason = $validated['reason'];
+            $appointmentId = null;
 
-            // Create confirmed appointment directly
-            $appointment = Appointment::create([
-                'user_id' => $user->id,
-                'doctor_id' => $doctor->id,
-                'department_id' => $doctor->department_id,
-                'patient_name' => $validated['patient_name'],
-                'patient_email' => $validated['patient_email'],
-                'patient_phone' => $validated['patient_phone'],
-                'service_mode' => 'offline',
-                'scheduled_for' => $scheduledFor,
-                'reason' => $validated['reason'],
-                'status' => 'confirmed',
-                'payment_status' => 'not_required',
-            ]);
+            $stmt->bindParam(':user_id', $userId);
+            $stmt->bindParam(':doctor_id', $doctorId);
+            $stmt->bindParam(':department_id', $departmentId);
+            $stmt->bindParam(':service_id', $serviceId);
+            $stmt->bindParam(':patient_name', $patientName);
+            $stmt->bindParam(':patient_email', $patientEmail);
+            $stmt->bindParam(':patient_phone', $patientPhone);
+            $stmt->bindParam(':service_mode', $serviceMode);
+            $stmt->bindParam(':scheduled_for', $scheduledForStr);
+            $stmt->bindParam(':reason', $reason);
+            $stmt->bindParam(':appointment_id', $appointmentId, \PDO::PARAM_INT | \PDO::PARAM_INPUT_OUTPUT, 32);
+
+            try {
+                $stmt->execute();
+            } catch (\Exception $e) {
+                if (str_contains($e->getMessage(), 'Time conflict')) {
+                    throw ValidationException::withMessages([
+                        'scheduled_time' => 'Time conflict detected for the selected slot.',
+                    ]);
+                }
+                throw $e;
+            }
+
+            // The package creates it as 'pending', but offline bookings are usually confirmed immediately
+            $appointment = Appointment::findOrFail($appointmentId);
+            $appointment->status = 'confirmed';
+            $appointment->save();
 
             return redirect()->route('admin.appointments.index')
-                ->with('success', 'Offline appointment successfully booked for ' . $user->name . '. Password for new account (if any) is password123.');
+                ->with('success', 'Offline appointment successfully booked for ' . $user->name . '. Password for new account (if any) is password123. Token: ' . $appointment->token_number);
         });
     }
 }
