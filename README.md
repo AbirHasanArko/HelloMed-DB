@@ -606,34 +606,32 @@ Because this schema was originally designed around Oracle 11g compatibility (whe
 
 ### Architecture Diagram
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                     CLIENT (Browser)                         │
-└──────────────────────┬───────────────────────────────────────┘
-                       │ HTTP
-┌──────────────────────▼───────────────────────────────────────┐
-│                   Laravel 11 (PHP)                           │
-│  ┌─────────────┐  ┌──────────────┐  ┌─────────────────────┐ │
-│  │   Routes    │→ │  Controllers │→ │  Eloquent Models    │ │
-│  └─────────────┘  └──────────────┘  └────────┬────────────┘ │
-│                                              │              │
-│  ┌───────────────────────────────────────────▼────────────┐ │
-│  │         yajra/laravel-pdo-via-oci8 Bridge              │ │
-│  └───────────────────────────────────────────┬────────────┘ │
-└──────────────────────────────────────────────┼──────────────┘
-                                               │ OCI8 / TNS
-┌──────────────────────────────────────────────▼──────────────┐
-│                   Oracle Database 19c                        │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │                   PL/SQL Packages                     │   │
-│  │  pkg_users · pkg_appointments · pkg_pharmacy          │   │
-│  │  pkg_ambulance                                        │   │
-│  └──────────────────────┬───────────────────────────────┘   │
-│  ┌──────────────────────▼───────────────────────────────┐   │
-│  │            Tables · Sequences · Triggers              │   │
-│  │         24 tables · 24 sequences · 24 triggers        │   │
-│  └──────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Client["CLIENT (Browser)"]
+    
+    subgraph Laravel["Laravel 11 (PHP)"]
+        direction TB
+        Routes["Routes"]
+        Controllers["Controllers"]
+        Models["Eloquent Models"]
+        Bridge["yajra/laravel-pdo-via-oci8 Bridge"]
+        
+        Routes --> Controllers
+        Controllers --> Models
+        Models --> Bridge
+    end
+
+    subgraph Oracle["Oracle Database 19c / 11g"]
+        direction TB
+        Packages["PL/SQL Packages\npkg_users · pkg_appointments · pkg_pharmacy\npkg_ambulance · pkg_facilities · pkg_inventory"]
+        Schema["Tables · Sequences · Triggers\n24 tables · 24 sequences · 24 triggers"]
+        
+        Packages --> Schema
+    end
+
+    Client -- "HTTP" --> Routes
+    Bridge -- "OCI8 / TNS" --> Packages
 ```
 
 ### OCI8 Driver Bridge
