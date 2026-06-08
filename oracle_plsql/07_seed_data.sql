@@ -29,4 +29,20 @@ VALUES ('Paracetamol', 'paracetamol', 'Fever and pain relief', 5.00, 1000, 0);
 INSERT INTO medicines (name, slug, description, price, stock_quantity, requires_prescription)
 VALUES ('Amoxicillin', 'amoxicillin', 'Antibiotic', 15.00, 500, 1);
 
+-- Inventory
+INSERT INTO inventory_items (name, category, quantity, unit, location, status) 
+VALUES ('Surgical Masks', 'PPE', 5000, 'boxes', 'Main Storage', 'available');
+INSERT INTO inventory_items (name, category, quantity, unit, location, status) 
+VALUES ('Syringes', 'Medical Supplies', 200, 'boxes', 'Storage B', 'low_stock');
+
+-- Facility Rooms
+INSERT INTO facility_rooms (room_number, room_type, capacity, is_active) 
+VALUES ('LAB-01', 'Lab', 5, 1);
+INSERT INTO facility_rooms (room_number, room_type, capacity, is_active) 
+VALUES ('OT-A', 'Operation Theatre', 1, 1);
+INSERT INTO facility_rooms (room_number, room_type, capacity, is_active) 
+VALUES ('OT-B', 'Operation Theatre', 1, 1);
+INSERT INTO facility_rooms (room_number, room_type, capacity, is_active) 
+VALUES ('ICU-01', 'ICU', 1, 1);
+
 COMMIT;
