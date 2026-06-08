@@ -301,6 +301,11 @@ CREATE INDEX idx_notif_notifiable ON notification_logs(notifiable_type, notifiab
 CREATE TABLE patient_profiles (
     id NUMBER PRIMARY KEY,
     user_id NUMBER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    date_of_birth DATE,
+    gender VARCHAR2(20),
+    height_cm NUMBER(5,2),
+    weight_kg NUMBER(5,2),
+    known_conditions VARCHAR2(4000),
     allergies VARCHAR2(4000),
     medical_notes VARCHAR2(4000),
     created_at TIMESTAMP,

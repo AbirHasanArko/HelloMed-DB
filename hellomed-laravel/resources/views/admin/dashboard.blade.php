@@ -6,6 +6,7 @@
         <div class="meta-row" style="margin-bottom: 16px;">
             <a class="ghost-button" href="{{ route('admin.reports.index') }}">Reports & Analytics</a>
             <a class="ghost-button" href="{{ route('admin.facility_rooms.index') }}">Manage Facility Rooms</a>
+            <a class="ghost-button" href="{{ route('admin.patients.index') }}">Patients</a>
             <a class="ghost-button" href="{{ route('admin.appointments.index') }}">Appointments</a>
             <a class="ghost-button" href="{{ route('admin.departments.index') }}">Departments</a>
             <a class="ghost-button" href="{{ route('admin.articles.index') }}">Articles</a>

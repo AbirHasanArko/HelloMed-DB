@@ -349,6 +349,11 @@ This document provides a formal, Data Dictionary-style specification of the Hell
 |---|---|---|---|---|
 | `ID` | `NUMBER` | No | | **PK** |
 | `USER_ID` | `NUMBER` | No | | **UNIQUE**, **FK** &rarr; `USERS(ID)` `ON DELETE CASCADE` |
+| `DATE_OF_BIRTH` | `DATE` | Yes | | |
+| `GENDER` | `VARCHAR2(20)` | Yes | | |
+| `HEIGHT_CM` | `NUMBER(5,2)` | Yes | | |
+| `WEIGHT_KG` | `NUMBER(5,2)` | Yes | | |
+| `KNOWN_CONDITIONS` | `VARCHAR2(4000)`| Yes | | |
 | `ALLERGIES` | `VARCHAR2(4000)`| Yes | | |
 | `MEDICAL_NOTES` | `VARCHAR2(4000)`| Yes | | |
 | `CREATED_AT` | `TIMESTAMP` | Yes | | |

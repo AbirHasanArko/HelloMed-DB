@@ -6,6 +6,7 @@
         <p>Operational queue for staff members managing day-to-day hospital workflows.</p>
         <div class="meta-row" style="margin-bottom: 16px;">
             <a class="ghost-button" href="{{ route('admin.appointments.index') }}">Manage appointments</a>
+            <a class="ghost-button" href="{{ route('admin.patients.index') }}">Patients</a>
             <a class="ghost-button" href="{{ route('admin.doctors.index') }}">Doctor schedules</a>
             <a class="ghost-button" href="{{ route('admin.articles.index') }}">Articles</a>
             <a class="ghost-button" href="{{ route('staff.inventory.index') }}">Inventory</a>

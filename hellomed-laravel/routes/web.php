@@ -189,6 +189,8 @@ Route::prefix('admin')
     ->group(function (): void {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');
+        Route::get('/patients', [\App\Http\Controllers\Admin\AdminPatientController::class, 'index'])->name('patients.index');
+        Route::get('/patients/{patient}', [\App\Http\Controllers\Admin\AdminPatientController::class, 'show'])->name('patients.show');
         Route::get('/appointments', [AdminAppointmentController::class, 'index'])->name('appointments.index');
         Route::patch('/appointments/{appointment}', [AdminAppointmentController::class, 'update'])->name('appointments.update');
         Route::get('/departments', [AdminDepartmentController::class, 'index'])->name('departments.index');

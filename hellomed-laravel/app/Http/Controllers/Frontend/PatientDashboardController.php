@@ -89,13 +89,23 @@ class PatientDashboardController extends Controller
         abort_unless($request->user()?->role === 'patient', 403);
 
         $validated = $request->validate([
-            'allergies' => ['nullable', 'string', 'max:3000'],
-            'medical_notes' => ['nullable', 'string', 'max:5000'],
+            'date_of_birth' => ['nullable', 'date', 'before:today'],
+            'gender' => ['nullable', 'string', 'in:male,female,other'],
+            'height_cm' => ['nullable', 'numeric', 'min:30', 'max:300'],
+            'weight_kg' => ['nullable', 'numeric', 'min:1', 'max:500'],
+            'known_conditions' => ['nullable', 'string', 'max:4000'],
+            'allergies' => ['nullable', 'string', 'max:4000'],
+            'medical_notes' => ['nullable', 'string', 'max:4000'],
         ]);
 
         $request->user()->patientProfile()->updateOrCreate(
             ['user_id' => $request->user()->id],
             [
+                'date_of_birth' => $validated['date_of_birth'] ?? null,
+                'gender' => $validated['gender'] ?? null,
+                'height_cm' => $validated['height_cm'] ?? null,
+                'weight_kg' => $validated['weight_kg'] ?? null,
+                'known_conditions' => $validated['known_conditions'] ?? null,
                 'allergies' => $validated['allergies'] ?? null,
                 'medical_notes' => $validated['medical_notes'] ?? null,
             ]

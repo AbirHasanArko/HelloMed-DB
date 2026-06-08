@@ -32,8 +32,20 @@
 
     <div class="card" style="margin-top:20px;">
         <h3>Write professional prescription</h3>
-        @if ($appointment->user?->patientProfile?->allergies)
-            <p class="muted"><strong>Patient recorded allergies:</strong> {{ $appointment->user->patientProfile->allergies }}</p>
+        @php $profile = $appointment->user?->patientProfile; @endphp
+        @if ($profile)
+            <div style="margin-bottom: 16px; padding: 12px; background: rgba(0,0,0,0.02); border-radius: 8px;">
+                <strong>Patient Medical Profile:</strong>
+                <ul style="margin-top: 8px; margin-bottom: 0; padding-left: 20px;">
+                    @if($profile->date_of_birth) <li><strong>DOB:</strong> {{ $profile->date_of_birth->format('M d, Y') }}</li> @endif
+                    @if($profile->gender) <li><strong>Gender:</strong> {{ ucfirst($profile->gender) }}</li> @endif
+                    @if($profile->height_cm) <li><strong>Height:</strong> {{ $profile->height_cm }} cm</li> @endif
+                    @if($profile->weight_kg) <li><strong>Weight:</strong> {{ $profile->weight_kg }} kg</li> @endif
+                    @if($profile->known_conditions) <li><strong>Known Conditions:</strong> <span style="color:#b91c1c;">{{ $profile->known_conditions }}</span></li> @endif
+                    @if($profile->allergies) <li><strong>Allergies:</strong> <span style="color:#b91c1c;">{{ $profile->allergies }}</span></li> @endif
+                    @if($profile->medical_notes) <li><strong>Notes:</strong> {{ $profile->medical_notes }}</li> @endif
+                </ul>
+            </div>
         @endif
         @if ($appointment->prescription_safety_notes)
             <p style="white-space: pre-wrap; color:#9f1239;"><strong>Previous safety notes:</strong> {{ $appointment->prescription_safety_notes }}</p>

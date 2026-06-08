@@ -152,7 +152,7 @@ Authenticated users with the `patient` role (the default role assigned on regist
 | 🧾 Order Invoice | Download a formatted invoice for any medicine order |
 | 💳 Online Payment | Complete medicine purchases via integrated payment gateway |
 | 📁 Medical Records | View personal medical history and past consultations |
-| 👤 Profile Management | Update personal profile, allergies, and medical notes |
+| 👤 Profile Management | Update detailed personal medical profile (DOB, height, weight, conditions, allergies) |
 | ⭐ Doctor Reviews | Submit ratings and reviews after a completed consultation |
 | 💬 Article Comments | Comment on and rate published health articles |
 | ❓ Ask Questions | Post health questions to the community Q&A forum |
@@ -234,6 +234,7 @@ A summary of which roles can access which system areas:
 | Q&A (ask & answer) | — | ✅ | ✅ | — | — | — |
 | Appointment chat | — | ✅ | ✅ | — | — | — |
 | Write prescriptions | — | — | ✅ | — | — | — |
+| View Patient Profiles | — | — | ✅ | ✅ | ✅ | — |
 | Manage own schedule | — | — | ✅ | — | — | — |
 | Author health articles | — | — | ✅ | — | — | — |
 | Admin panel (departments, doctors, articles) | — | — | — | ✅ | ✅ | — |

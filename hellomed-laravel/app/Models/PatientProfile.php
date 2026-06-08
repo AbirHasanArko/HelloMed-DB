@@ -12,8 +12,19 @@ class PatientProfile extends Model
 
     protected $fillable = [
         'user_id',
+        'date_of_birth',
+        'gender',
+        'height_cm',
+        'weight_kg',
+        'known_conditions',
         'allergies',
         'medical_notes',
+    ];
+
+    protected $casts = [
+        'date_of_birth' => 'date',
+        'height_cm' => 'float',
+        'weight_kg' => 'float',
     ];
 
     public function user(): BelongsTo

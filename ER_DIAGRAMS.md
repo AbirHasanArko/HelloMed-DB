@@ -33,6 +33,11 @@ erDiagram
     PATIENT_PROFILES {
         NUMBER id PK
         NUMBER user_id FK
+        DATE date_of_birth
+        VARCHAR2 gender
+        NUMBER height_cm
+        NUMBER weight_kg
+        VARCHAR2 known_conditions
         VARCHAR2 allergies
         VARCHAR2 medical_notes
         TIMESTAMP created_at
