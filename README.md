@@ -6,7 +6,7 @@
   [![Oracle](https://img.shields.io/badge/Oracle-19c-F80000?style=for-the-badge&logo=oracle&logoColor=white)](https://oracle.com)
   [![PL/SQL](https://img.shields.io/badge/PL/SQL-Packages-00758F?style=for-the-badge)](https://oracle.com)
   [![Laravel](https://img.shields.io/badge/Laravel-OCI8-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com)
-  [![License](https://img.shields.io/badge/License-Private-333?style=for-the-badge)](#)
+  [![License](https://img.shields.io/badge/License-Proprietary-333?style=for-the-badge)](#)
 </div>
 
 <br/>
