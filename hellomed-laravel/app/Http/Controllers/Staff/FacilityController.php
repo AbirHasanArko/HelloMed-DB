@@ -70,4 +70,20 @@ class FacilityController extends Controller
 
         return redirect()->route('staff.facilities.index')->with('success', 'Facility booked successfully.');
     }
+
+    public function updateBooking(Request $request, $booking)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:pending,approved,completed,cancelled'
+        ]);
+
+        $bindings = [
+            'p_booking_id' => $booking,
+            'p_status' => $validated['status'],
+        ];
+
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_facilities.update_booking_status(:p_booking_id, :p_status); END;", $bindings);
+
+        return back()->with('success', 'Booking status updated successfully.');
+    }
 }

@@ -45,6 +45,9 @@ class DashboardController extends Controller
         while ($row = oci_fetch_assoc($cursor)) {
             $lowerRow = [];
             foreach ($row as $k => $v) {
+                if (is_object($v) && (get_class($v) === 'OCILob' || get_class($v) === 'OCI-Lob' || method_exists($v, 'load'))) {
+                    $v = $v->load();
+                }
                 $lowerRow[strtolower($k)] = $v;
             }
             $results[] = $lowerRow;

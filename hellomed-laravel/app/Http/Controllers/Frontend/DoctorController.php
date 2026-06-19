@@ -49,7 +49,9 @@ class DoctorController extends Controller
             ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => $request->query()]
         );
 
-        $departments = \App\Models\Department::query()->where('is_active', true)->orderBy('name')->get();
+        $departments = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_active_departments(:cursor); END;", [], \App\Models\Department::class)
+            ->sortBy('name')
+            ->values();
 
         return view('doctors.index', compact('doctors', 'departments'));
     }

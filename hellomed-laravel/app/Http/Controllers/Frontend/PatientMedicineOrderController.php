@@ -7,14 +7,15 @@ use App\Models\MedicineOrder;
 
 class PatientMedicineOrderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $orders = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_medicine_orders(:user_id, :cursor); END;", ['user_id' => $request->user()->id], \App\Models\MedicineOrder::class)->sortByDesc('created_at')->values();
+        $page = $request->get('page', 1);
+        $perPage = 15;
+        $paginator = new \Illuminate\Pagination\LengthAwarePaginator($orders->forPage($page, $perPage), $orders->count(), $perPage, $page, ['path' => $request->url(), 'query' => $request->query()]);
+
         return view('patient.medicine-orders', [
-            'orders' => MedicineOrder::query()
-                ->withCount('items')
-                ->where('user_id', request()->user()->id)
-                ->latest()
-                ->paginate(15),
+            'orders' => $paginator,
         ]);
     }
 

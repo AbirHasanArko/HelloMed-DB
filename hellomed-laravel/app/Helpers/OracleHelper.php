@@ -29,7 +29,7 @@ class OracleHelper
             $lowercaseRow = [];
             foreach ($row as $k => $v) {
                 // If it's a LOB/CLOB, read the contents
-                if (is_object($v) && get_class($v) == 'OCI-Lob') {
+                if (is_object($v) && (get_class($v) === 'OCILob' || get_class($v) === 'OCI-Lob' || method_exists($v, 'load'))) {
                     $v = $v->load();
                 }
                 $lowercaseRow[strtolower($k)] = $v;

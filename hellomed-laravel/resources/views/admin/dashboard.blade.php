@@ -15,6 +15,7 @@
             <a class="ghost-button" href="{{ route('admin.audit-logs.index') }}">Audit logs</a>
             @if (auth()->user()->isAdmin())
                 <a class="ghost-button" href="{{ route('admin.payments.index') }}">Payments</a>
+                <a class="ghost-button" href="{{ route('admin.users.index') }}">Manage Users</a>
                 <a class="ghost-button" href="{{ route('admin.staff.create') }}">Add staff</a>
             @endif
         </div>

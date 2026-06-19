@@ -374,6 +374,18 @@ CREATE OR REPLACE PACKAGE pkg_crud_writes AS
         p_reference IN VARCHAR2,
         p_notes IN VARCHAR2
     );
+    PROCEDURE create_audit_log(
+        p_actor_user_id IN NUMBER,
+        p_action IN VARCHAR2,
+        p_entity_type IN VARCHAR2,
+        p_entity_id IN NUMBER,
+        p_old_values IN VARCHAR2,
+        p_new_values IN VARCHAR2,
+        p_meta IN VARCHAR2,
+        p_ip_address IN VARCHAR2,
+        p_user_agent IN VARCHAR2
+    );
+
 END pkg_crud_writes;
 /
 
@@ -1103,6 +1115,28 @@ CREATE OR REPLACE PACKAGE BODY pkg_crud_writes AS
         WHERE id = p_id;
         COMMIT;
     END update_payment;
+
+    PROCEDURE create_audit_log(
+        p_actor_user_id IN NUMBER,
+        p_action IN VARCHAR2,
+        p_entity_type IN VARCHAR2,
+        p_entity_id IN NUMBER,
+        p_old_values IN VARCHAR2,
+        p_new_values IN VARCHAR2,
+        p_meta IN VARCHAR2,
+        p_ip_address IN VARCHAR2,
+        p_user_agent IN VARCHAR2
+    ) IS
+    BEGIN
+        INSERT INTO audit_logs (
+            actor_user_id, action, entity_type, entity_id, 
+            old_values, new_values, meta, ip_address, user_agent
+        ) VALUES (
+            p_actor_user_id, p_action, p_entity_type, p_entity_id, 
+            p_old_values, p_new_values, p_meta, p_ip_address, p_user_agent
+        );
+        COMMIT;
+    END create_audit_log;
 
 END pkg_crud_writes;
 /

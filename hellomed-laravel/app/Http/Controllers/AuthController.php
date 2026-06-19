@@ -31,17 +31,19 @@ class AuthController extends Controller
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $retryAfter = RateLimiter::availableIn($throttleKey);
 
-            AuditLog::query()->create([
-                'actor_user_id' => null,
-                'action' => 'auth.login_locked',
-                'entity_type' => 'User',
-                'entity_id' => null,
-                'meta' => [
+            \App\Helpers\OracleHelper::executeProcedure('BEGIN pkg_crud_writes.create_audit_log(:p_actor_user_id, :p_action, :p_entity_type, :p_entity_id, :p_old_values, :p_new_values, :p_meta, :p_ip_address, :p_user_agent); END;', [
+                'p_actor_user_id' => null,
+                'p_action' => 'auth.login_locked',
+                'p_entity_type' => 'User',
+                'p_entity_id' => null,
+                'p_old_values' => null,
+                'p_new_values' => null,
+                'p_meta' => json_encode([
                     'email' => $credentials['email'],
                     'retry_after_seconds' => $retryAfter,
-                ],
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
+                ]),
+                'p_ip_address' => $request->ip(),
+                'p_user_agent' => $request->userAgent(),
             ]);
 
             return back()->withErrors([
@@ -52,17 +54,19 @@ class AuthController extends Controller
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             RateLimiter::hit($throttleKey, 60);
 
-            AuditLog::query()->create([
-                'actor_user_id' => null,
-                'action' => 'auth.login_failed',
-                'entity_type' => 'User',
-                'entity_id' => null,
-                'meta' => [
+            \App\Helpers\OracleHelper::executeProcedure('BEGIN pkg_crud_writes.create_audit_log(:p_actor_user_id, :p_action, :p_entity_type, :p_entity_id, :p_old_values, :p_new_values, :p_meta, :p_ip_address, :p_user_agent); END;', [
+                'p_actor_user_id' => null,
+                'p_action' => 'auth.login_failed',
+                'p_entity_type' => 'User',
+                'p_entity_id' => null,
+                'p_old_values' => null,
+                'p_new_values' => null,
+                'p_meta' => json_encode([
                     'email' => $credentials['email'],
                     'reason' => 'invalid_credentials',
-                ],
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
+                ]),
+                'p_ip_address' => $request->ip(),
+                'p_user_agent' => $request->userAgent(),
             ]);
 
             return back()->withErrors([

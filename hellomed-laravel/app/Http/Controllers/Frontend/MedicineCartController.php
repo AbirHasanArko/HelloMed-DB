@@ -17,7 +17,12 @@ class MedicineCartController extends Controller
     {
         $cart = $request->session()->get('medicine_cart', []);
         $medicineIds = array_keys($cart);
-        $medicines = Medicine::query()->whereIn('id', $medicineIds)->get()->keyBy('id');
+        $idList = implode(',', $medicineIds);
+        if (empty($idList)) {
+            $medicines = collect();
+        } else {
+            $medicines = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_medicines_by_ids(:p_ids, :cursor); END;", ['p_ids' => $idList], \App\Models\Medicine::class)->keyBy('id');
+        }
 
         $items = [];
         $total = 0;
@@ -96,7 +101,8 @@ class MedicineCartController extends Controller
         }
 
         $medicineIds = array_keys($cart);
-        $medicines = Medicine::query()->whereIn('id', $medicineIds)->lockForUpdate()->get()->keyBy('id');
+        $idList = implode(',', $medicineIds);
+        $medicines = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_medicines_by_ids(:p_ids, :cursor); END;", ['p_ids' => $idList], \App\Models\Medicine::class)->keyBy('id');
 
         $containsPrescriptionItems = false;
         foreach ($cart as $medicineId => $quantity) {
@@ -118,61 +124,49 @@ class MedicineCartController extends Controller
             $prescriptionPath = $request->file('prescription')->store('prescriptions', 'public');
         }
 
-        $order = DB::transaction(function () use ($request, $validated, $cart, $medicines, $containsPrescriptionItems, $prescriptionPath) {
-            $total = 0;
-            $items = [];
-            $commitInventoryNow = $validated['payment_method'] === 'cash-on-delivery';
+        $commitInventoryNow = $validated['payment_method'] === 'cash-on-delivery';
 
-            foreach ($cart as $medicineId => $quantity) {
-                $medicine = $medicines->get((int) $medicineId);
-                if (! $medicine) {
-                    continue;
-                }
+        $bindings = [
+            'p_user_id' => $request->user()->id,
+            'p_delivery_address' => $validated['delivery_address'],
+            'p_phone' => $validated['phone'],
+            'p_payment_method' => $validated['payment_method'],
+            'p_payment_callback_token' => in_array($validated['payment_method'], ['bkash', 'nagad'], true) ? Str::random(48) : null,
+            'p_payment_status' => 'pending',
+            'p_notes' => $validated['notes'] ?? null,
+            'p_prescription_path' => $prescriptionPath,
+            'p_contains_prescription_items' => $containsPrescriptionItems ? 1 : 0,
+            'p_inventory_committed_at' => $commitInventoryNow ? now()->format('Y-m-d H:i:s') : null,
+            'out_p_order_id' => null,
+            'out_p_order_number' => null,
+        ];
+        
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_pharmacy.create_order(:p_user_id, :p_delivery_address, :p_phone, :p_payment_method, :p_payment_callback_token, :p_payment_status, :p_notes, :p_prescription_path, :p_contains_prescription_items, TO_TIMESTAMP(:p_inventory_committed_at, 'YYYY-MM-DD HH24:MI:SS'), :p_order_id, :p_order_number); END;", $bindings);
+        
+        $orderId = $bindings['out_p_order_id'];
+        $orderNumber = $bindings['out_p_order_number'];
 
-                if ($medicine->stock_quantity < (int) $quantity) {
-                    abort(422, "Insufficient stock for {$medicine->name}");
-                }
-
-                $lineTotal = (float) $medicine->price * (int) $quantity;
-                $total += $lineTotal;
-
-                $items[] = [
-                    'medicine' => $medicine,
-                    'quantity' => (int) $quantity,
-                    'line_total' => $lineTotal,
-                ];
+        foreach ($cart as $medicineId => $quantity) {
+            $medicine = $medicines->get((int) $medicineId);
+            if (! $medicine) continue;
+            
+            if ($medicine->stock_quantity < (int) $quantity) {
+                abort(422, "Insufficient stock for {$medicine->name}");
             }
+            
+            $itemBindings = [
+                'p_order_id' => $orderId,
+                'p_medicine_id' => $medicine->id,
+                'p_quantity' => $quantity,
+                'p_deduct_stock' => $commitInventoryNow ? 1 : 0,
+            ];
+            \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_pharmacy.add_order_item(:p_order_id, :p_medicine_id, :p_quantity, :p_deduct_stock); END;", $itemBindings);
+        }
 
-            $order = MedicineOrder::query()->create([
-                'user_id' => $request->user()->id,
-                'order_number' => 'MED-'.now()->format('YmdHis').'-'.random_int(100, 999),
-                'status' => 'pending',
-                'total_amount' => $total,
-                'payment_method' => $validated['payment_method'],
-                'payment_callback_token' => in_array($validated['payment_method'], ['bkash', 'nagad'], true) ? Str::random(48) : null,
-                'payment_status' => 'pending',
-                'delivery_address' => $validated['delivery_address'],
-                'phone' => $validated['phone'],
-                'notes' => $validated['notes'] ?? null,
-                'prescription_path' => $prescriptionPath,
-                'contains_prescription_items' => $containsPrescriptionItems,
-                'inventory_committed_at' => $commitInventoryNow ? now() : null,
-            ]);
-
-            foreach ($items as $item) {
-                if ($commitInventoryNow) {
-                    $item['medicine']->decrement('stock_quantity', $item['quantity']);
-                }
-                $order->items()->create([
-                    'medicine_id' => $item['medicine']->id,
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $item['medicine']->price,
-                    'line_total' => $item['line_total'],
-                ]);
-            }
-
-            return $order;
-        });
+        // We need the order object for AuditLogger and redirects. 
+        // We can just fetch it.
+        $orderCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_medicine_orders(:user_id, :cursor); END;", ['user_id' => $request->user()->id], \App\Models\MedicineOrder::class);
+        $order = $orderCollection->where('id', $orderId)->first();
 
         AuditLogger::log('medicine_order.created', $order, [], [
             'payment_method' => $order->payment_method,

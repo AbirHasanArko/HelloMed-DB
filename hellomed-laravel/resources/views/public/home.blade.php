@@ -99,8 +99,8 @@
                             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" opacity="0.7"><path d="M8 7a4 4 0 1 0 8 0 4 4 0 1 0-8 0"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
                         </div>
                     @endif
-                    <div class="tag">{{ $doctor->department?->name }}</div>
-                    <h3>{{ $doctor->name }}</h3>
+                    <div class="tag">{{ $doctor->department_name ?? 'N/A' }}</div>
+                    <h3>{{ $doctor->user_name }}</h3>
                     <p>{{ $doctor->specialty }}</p>
                 </a>
             @endforeach
@@ -121,12 +121,12 @@
                             </div>
                         @endif
                         <div class="photo-card-overlay"></div>
-                        <span class="photo-card-badge tag" style="margin-bottom:0;">{{ $article->category?->name }}</span>
+                        <span class="photo-card-badge tag" style="margin-bottom:0;">{{ $article->category_name ?? 'Uncategorized' }}</span>
                     </div>
                     <div class="photo-card-body">
                         <h3>{{ $article->title }}</h3>
                         <p>{{ $article->excerpt }}</p>
-                        <div class="muted" style="font-size:12px;margin-top:auto;">Writer: {{ $article->author?->doctorProfile?->name ?? $article->author?->name ?? 'HelloMed Team' }}</div>
+                        <div class="muted" style="font-size:12px;margin-top:auto;">Writer: {{ $article->author_name ?? 'HelloMed Team' }}</div>
                     </div>
                 </a>
             @endforeach

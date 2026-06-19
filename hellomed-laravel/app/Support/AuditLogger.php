@@ -12,16 +12,21 @@ class AuditLogger
     {
         $actor = Auth::user();
 
-        AuditLog::query()->create([
-            'actor_user_id' => $actor?->id,
-            'action' => $action,
-            'entity_type' => class_basename($entity),
-            'entity_id' => $entity->getKey(),
-            'old_values' => $oldValues === [] ? null : $oldValues,
-            'new_values' => $newValues === [] ? null : $newValues,
-            'meta' => $meta === [] ? null : $meta,
-            'ip_address' => request()?->ip(),
-            'user_agent' => request()?->userAgent(),
-        ]);
+        $bindings = [
+            'p_actor_user_id' => $actor?->id,
+            'p_action' => $action,
+            'p_entity_type' => class_basename($entity),
+            'p_entity_id' => $entity->getKey(),
+            'p_old_values' => $oldValues === [] ? null : json_encode($oldValues),
+            'p_new_values' => $newValues === [] ? null : json_encode($newValues),
+            'p_meta' => $meta === [] ? null : json_encode($meta),
+            'p_ip_address' => request()?->ip(),
+            'p_user_agent' => request()?->userAgent(),
+        ];
+
+        \App\Helpers\OracleHelper::executeProcedure(
+            'BEGIN pkg_crud_writes.create_audit_log(:p_actor_user_id, :p_action, :p_entity_type, :p_entity_id, :p_old_values, :p_new_values, :p_meta, :p_ip_address, :p_user_agent); END;',
+            $bindings
+        );
     }
 }

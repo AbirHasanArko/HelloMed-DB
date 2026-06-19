@@ -159,6 +159,7 @@ Route::prefix('staff')
         Route::get('/facilities', [\App\Http\Controllers\Staff\FacilityController::class, 'index'])->name('facilities.index');
         Route::get('/facilities/create', [\App\Http\Controllers\Staff\FacilityController::class, 'create'])->name('facilities.create');
         Route::post('/facilities', [\App\Http\Controllers\Staff\FacilityController::class, 'store'])->name('facilities.store');
+        Route::patch('/facilities/bookings/{booking}', [\App\Http\Controllers\Staff\FacilityController::class, 'updateBooking'])->name('facilities.bookings.update');
         Route::get('/queue', [\App\Http\Controllers\Staff\QueueController::class, 'index'])->name('queue.index');
         Route::patch('/queue/{appointment}', [\App\Http\Controllers\Staff\QueueController::class, 'updateStatus'])->name('queue.update');
     });
@@ -180,6 +181,7 @@ Route::prefix('doctor')
         Route::patch('/appointments/{appointment}/prescription', [DoctorAppointmentController::class, 'updatePrescription'])->name('appointments.prescription.update');
         Route::get('/facilities', [\App\Http\Controllers\Doctor\FacilityController::class, 'index'])->name('facilities.index');
         Route::post('/facilities', [\App\Http\Controllers\Doctor\FacilityController::class, 'store'])->name('facilities.store');
+        Route::patch('/facilities/bookings/{booking}', [\App\Http\Controllers\Doctor\FacilityController::class, 'updateBooking'])->name('facilities.bookings.update');
         Route::get('/reports', [\App\Http\Controllers\Doctor\ReportController::class, 'index'])->name('reports.index');
     });
 
@@ -223,5 +225,9 @@ Route::prefix('admin')
             Route::patch('/payments/{payment}', [AdminPaymentController::class, 'update'])->name('payments.update');
             Route::get('/staff/create', [AdminStaffController::class, 'create'])->name('staff.create');
             Route::post('/staff', [AdminStaffController::class, 'store'])->name('staff.store');
+            
+            Route::get('/users', [\App\Http\Controllers\Admin\AdminUserController::class, 'index'])->name('users.index');
+            Route::patch('/users/{user}/role', [\App\Http\Controllers\Admin\AdminUserController::class, 'updateRole'])->name('users.role.update');
+            Route::delete('/users/{user}', [\App\Http\Controllers\Admin\AdminUserController::class, 'destroy'])->name('users.destroy');
         });
     });

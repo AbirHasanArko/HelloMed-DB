@@ -58,5 +58,44 @@
             <button type="submit" class="button">Book Room</button>
         </div>
     </form>
+
+    <h2 style="margin-top: 40px; margin-bottom: 16px;">Today's Bookings</h2>
+    <div class="grid cols-2">
+        @forelse($rooms as $room)
+        <div class="card">
+            <h3 style="margin-top:0; margin-bottom:8px;">{{ $room->room_number }}</h3>
+            <div style="background:var(--surface); padding:12px; border-radius:8px;">
+                @forelse($room->bookings as $booking)
+                    <div style="padding:8px 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between;">
+                        <span style="font-weight:500; color:var(--text);">
+                            {{ \Carbon\Carbon::parse($booking->start_time)->format('h:i A') }} - 
+                            {{ \Carbon\Carbon::parse($booking->end_time)->format('h:i A') }}
+                        </span>
+                        <span class="muted" style="font-size:13px; display:flex; gap: 8px; align-items:center;">
+                            @if(in_array($booking->status, ['completed', 'cancelled']))
+                                {{ ucfirst($booking->status) }}
+                            @else
+                                <form method="POST" action="{{ route('doctor.facilities.bookings.update', $booking->id) }}" style="margin:0;display:flex;gap:4px;">
+                                    @csrf
+                                    @method('PATCH')
+                                    <select name="status" onchange="this.form.submit()" style="padding: 2px; font-size: 12px; height: auto;">
+                                        <option value="pending" {{ $booking->status == 'pending' ? 'selected' : '' }}>Pending</option>
+                                        <option value="approved" {{ $booking->status == 'approved' ? 'selected' : '' }}>Approved</option>
+                                        <option value="completed" {{ $booking->status == 'completed' ? 'selected' : '' }}>Completed</option>
+                                        <option value="cancelled" {{ $booking->status == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                    </select>
+                                </form>
+                            @endif
+                        </span>
+                    </div>
+                @empty
+                    <p class="muted" style="margin:0; font-size:14px; text-align:center;">No bookings today.</p>
+                @endforelse
+            </div>
+        </div>
+        @empty
+            <p class="muted">No facility rooms available.</p>
+        @endforelse
+    </div>
 </section>
 @endsection

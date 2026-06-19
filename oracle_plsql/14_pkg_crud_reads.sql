@@ -22,7 +22,10 @@ CREATE OR REPLACE PACKAGE pkg_crud_reads AS
     PROCEDURE get_homepage_data(
         p_dept_cursor OUT SYS_REFCURSOR,
         p_doc_cursor OUT SYS_REFCURSOR,
-        p_art_cursor OUT SYS_REFCURSOR
+        p_art_cursor OUT SYS_REFCURSOR,
+        p_patient_count OUT NUMBER,
+        p_dept_count OUT NUMBER,
+        p_doc_count OUT NUMBER
     );
 
     PROCEDURE get_user_by_email(
@@ -268,9 +271,16 @@ CREATE OR REPLACE PACKAGE BODY pkg_crud_reads AS
     PROCEDURE get_homepage_data(
         p_dept_cursor OUT SYS_REFCURSOR,
         p_doc_cursor OUT SYS_REFCURSOR,
-        p_art_cursor OUT SYS_REFCURSOR
+        p_art_cursor OUT SYS_REFCURSOR,
+        p_patient_count OUT NUMBER,
+        p_dept_count OUT NUMBER,
+        p_doc_count OUT NUMBER
     ) IS
     BEGIN
+        SELECT COUNT(*) INTO p_patient_count FROM users WHERE role = 'patient';
+        SELECT COUNT(*) INTO p_dept_count FROM departments WHERE is_active = 1;
+        SELECT COUNT(*) INTO p_doc_count FROM doctors WHERE is_active = 1;
+
         OPEN p_dept_cursor FOR
             SELECT * FROM (
                 SELECT * FROM departments 

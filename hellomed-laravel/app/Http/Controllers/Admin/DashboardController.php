@@ -25,12 +25,36 @@ class DashboardController extends Controller
         
         $stmt->execute();
 
+        $stmtCounts = $pdo->prepare("
+            BEGIN
+                SELECT COUNT(*) INTO :doctorCount FROM doctors;
+                SELECT COUNT(*) INTO :departmentCount FROM departments;
+                SELECT COUNT(*) INTO :appointmentCount FROM appointments;
+                SELECT COUNT(*) INTO :articleCount FROM articles;
+                SELECT COUNT(*) INTO :paymentCount FROM payments;
+            END;
+        ");
+
+        $doctorCount = 0;
+        $departmentCount = 0;
+        $appointmentCount = 0;
+        $articleCount = 0;
+        $paymentCount = 0;
+
+        $stmtCounts->bindParam(':doctorCount', $doctorCount, \PDO::PARAM_INT | \PDO::PARAM_INPUT_OUTPUT, 32);
+        $stmtCounts->bindParam(':departmentCount', $departmentCount, \PDO::PARAM_INT | \PDO::PARAM_INPUT_OUTPUT, 32);
+        $stmtCounts->bindParam(':appointmentCount', $appointmentCount, \PDO::PARAM_INT | \PDO::PARAM_INPUT_OUTPUT, 32);
+        $stmtCounts->bindParam(':articleCount', $articleCount, \PDO::PARAM_INT | \PDO::PARAM_INPUT_OUTPUT, 32);
+        $stmtCounts->bindParam(':paymentCount', $paymentCount, \PDO::PARAM_INT | \PDO::PARAM_INPUT_OUTPUT, 32);
+
+        $stmtCounts->execute();
+
         return view('admin.dashboard', [
-            'doctorCount' => Doctor::query()->count(),
-            'departmentCount' => Department::query()->count(),
-            'appointmentCount' => Appointment::query()->count(),
-            'articleCount' => Article::query()->count(),
-            'paymentCount' => Payment::query()->count(),
+            'doctorCount' => $doctorCount,
+            'departmentCount' => $departmentCount,
+            'appointmentCount' => $appointmentCount,
+            'articleCount' => $articleCount,
+            'paymentCount' => $paymentCount,
             'failedLoginCount' => $failedLoginCount,
             'failedPaymentCallbackCount' => $failedPaymentCallbackCount,
             'frequentAppointmentStatusChanges' => $frequentAppointmentStatusChanges,

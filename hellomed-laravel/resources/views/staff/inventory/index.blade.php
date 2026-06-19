@@ -16,6 +16,20 @@
         </div>
     @endif
 
+    @if(count($alerts) > 0)
+        <div class="card" style="border-left: 4px solid var(--error-text); margin-bottom: 20px;">
+            <h3 style="margin-top:0; color:var(--error-text);">Low Stock Alerts</h3>
+            <ul style="margin:0; padding-left: 20px;">
+                @foreach($alerts as $alert)
+                    <li>
+                        <strong>{{ $alert->name }}</strong> is {{ str_replace('_', ' ', $alert->status) }} 
+                        (Current stock: {{ $alert->quantity }} {{ $alert->unit }})
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <div class="card" style="padding:0; overflow:hidden;">
         <table class="table" style="margin:0;">
             <thead>

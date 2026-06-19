@@ -30,13 +30,20 @@
                             {{ \Carbon\Carbon::parse($booking->start_time)->format('h:i A') }} - 
                             {{ \Carbon\Carbon::parse($booking->end_time)->format('h:i A') }}
                         </span>
-                        <span class="muted" style="font-size:13px;">
-                            @if($booking->status == 'scheduled')
-                                <span style="color:var(--primary);">Scheduled</span>
-                            @elseif($booking->status == 'in_progress')
-                                <span style="color:var(--success-text);">In Progress</span>
-                            @else
+                        <span class="muted" style="font-size:13px; display:flex; gap: 8px; align-items:center;">
+                            @if(in_array($booking->status, ['completed', 'cancelled']))
                                 {{ ucfirst($booking->status) }}
+                            @else
+                                <form method="POST" action="{{ route('staff.facilities.bookings.update', $booking->id) }}" style="margin:0;display:flex;gap:4px;">
+                                    @csrf
+                                    @method('PATCH')
+                                    <select name="status" onchange="this.form.submit()" style="padding: 2px; font-size: 12px; height: auto;">
+                                        <option value="pending" {{ $booking->status == 'pending' ? 'selected' : '' }}>Pending</option>
+                                        <option value="approved" {{ $booking->status == 'approved' ? 'selected' : '' }}>Approved</option>
+                                        <option value="completed" {{ $booking->status == 'completed' ? 'selected' : '' }}>Completed</option>
+                                        <option value="cancelled" {{ $booking->status == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                                    </select>
+                                </form>
                             @endif
                         </span>
                     </div>

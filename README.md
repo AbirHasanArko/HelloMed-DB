@@ -95,7 +95,7 @@ All core logic, tables, sequences, triggers, and data manipulation rules are def
 | **Sequences** | 24 auto-increment sequences |
 | **Triggers** | 24 BEFORE INSERT triggers |
 | **PL/SQL Packages** | 10 (Users, Appointments, Pharmacy, Ambulance, Facilities, Inventory, Search, Filters, CRUD Writes, CRUD Reads) |
-| **Stored Procedures** | ~118 across all packages |
+| **Stored Procedures** | 119 across all packages |
 | **Indexes** | 7 performance-optimized indexes |
 | **Frontend** | Laravel 11 via OCI8 bridge |
 
@@ -106,11 +106,11 @@ To give an idea of the depth of the PL/SQL implementation, here are some raw cod
 | PL/SQL Construct | Count | Notes |
 |---|---|---|
 | **Packages** | 10 | Modularized business logic wrappers |
-| **Procedures** | ~118 | Distinct callable stored procedures |
+| **Procedures** | 119 | Distinct callable stored procedures |
 | **Functions** | 0 | Business logic encapsulated within procedures |
 | **Triggers** | 24 | `BEFORE INSERT` auto-increment & timestamp triggers |
 | **IF / ELSIF / ELSE** | ~125 | Conditional branching for business rules |
-| **SYS_REFCURSOR** | ~58 | Procedures returning dynamic result sets to Laravel |
+| **SYS_REFCURSOR** | 174 | Procedures returning dynamic result sets to Laravel |
 | **COMMIT / ROLLBACK** | 19 | Explicit transaction control blocks |
 | **EXCEPTION** | 1 | Structured error handling block |
 | **Loops** | 4 | Highly optimized set-based SQL; minimal `WHILE/FOR` cursor loops used! |
