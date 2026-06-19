@@ -99,6 +99,21 @@ All core logic, tables, sequences, triggers, and data manipulation rules are def
 | **Indexes** | 7 performance-optimized indexes |
 | **Frontend** | Laravel 11 via OCI8 bridge |
 
+### PL/SQL Codebase Metrics
+
+To give an idea of the depth of the PL/SQL implementation, here are some raw code metrics across the `.sql` schema files:
+
+| PL/SQL Construct | Count | Notes |
+|---|---|---|
+| **Packages** | 8 | Modularized business logic wrappers |
+| **Procedures** | 22 | Distinct callable stored procedures |
+| **Triggers** | 24 | `BEFORE INSERT` auto-increment & timestamp triggers |
+| **IF / ELSIF / ELSE** | ~125 | Conditional branching for business rules |
+| **SYS_REFCURSOR** | 6 | Procedures returning dynamic result sets to Laravel |
+| **COMMIT / ROLLBACK** | 19 | Explicit transaction control blocks |
+| **EXCEPTION** | 1 | Structured error handling block |
+| **Loops** | 0 | Highly optimized set-based SQL; no slow `WHILE/FOR` cursor loops used! |
+
 ---
 
 ## 🛠️ Technology Stack
