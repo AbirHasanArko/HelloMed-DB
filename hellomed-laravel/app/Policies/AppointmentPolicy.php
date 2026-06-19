@@ -14,7 +14,7 @@ class AppointmentPolicy
 
     public function view(User $user, Appointment $appointment): bool
     {
-        return $user->isAdminOrStaff() || $appointment->user_id === $user->id;
+        return $user->isAdminOrStaff() || $appointment->user_id == $user->id;
     }
 
     public function create(User $user): bool
@@ -28,7 +28,7 @@ class AppointmentPolicy
             return true;
         }
 
-        return $appointment->user_id === $user->id
+        return $appointment->user_id == $user->id
             && in_array($appointment->status, ['pending', 'confirmed'], true);
     }
 

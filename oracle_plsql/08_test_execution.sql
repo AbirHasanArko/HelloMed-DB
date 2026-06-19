@@ -57,10 +57,8 @@ BEGIN
     
     pkg_pharmacy.create_order(
         p_user_id => v_new_user_id,
-        p_patient_name => 'Jane Doe',
-        p_patient_phone => '555-0199',
-        p_shipping_address => '123 Health St.',
-        p_payment_method => 'cash_on_delivery',
+        p_delivery_address => '123 Health St.',
+        p_phone => '555-0199',
         p_order_id => v_order_id
     );
     
@@ -71,8 +69,7 @@ BEGIN
     pkg_pharmacy.add_order_item(
         p_order_id => v_order_id,
         p_medicine_id => 1,
-        p_quantity => 2,
-        p_unit_price => 5.00
+        p_quantity => 2
     );
     
     DBMS_OUTPUT.PUT_LINE('   -> Order processing complete!');

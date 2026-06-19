@@ -842,7 +842,7 @@
                 <strong style="font-size: 16px;">HelloMed</strong>
                 <p class="muted" style="font-size: 13px;">Online and offline hospital services with central appointment booking.</p>
             </div>
-            <div class="muted" style="font-size: 13px;">Built with Laravel · © {{ date('Y') }} HelloMed</div>
+            <div class="muted" style="font-size: 13px;">Built with Oracle PL/SQL & Laravel · © 2026 HelloMed</div>
         </div>
         <div class="dev-footer" style="border-top: 1px solid var(--border); margin-top: 24px; padding-top: 24px;">
             <div class="container dev-footer-inner">

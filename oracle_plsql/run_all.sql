@@ -6,5 +6,7 @@
 @06_pkg_ambulance.sql
 @09_pkg_facilities.sql
 @10_pkg_inventory.sql
+@11_pkg_search.sql
+@12_pkg_filters.sql
 @07_seed_data.sql
 exit

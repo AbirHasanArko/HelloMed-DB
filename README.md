@@ -1,12 +1,12 @@
 <div align="center">
   <h1>🏥 HelloMed Database Architecture</h1>
   <p><b>A Comprehensive Oracle PL/SQL Schema for Hospital Management</b></p>
-  <p><i>24 relational tables · 6 PL/SQL packages · 24 sequences & triggers · Full seed data</i></p>
+  <p><i>24 relational tables · 8 PL/SQL packages · 24 sequences & triggers · Full seed data</i></p>
 
   [![Oracle](https://img.shields.io/badge/Oracle-19c-F80000?style=for-the-badge&logo=oracle&logoColor=white)](https://oracle.com)
   [![PL/SQL](https://img.shields.io/badge/PL/SQL-Packages-00758F?style=for-the-badge)](https://oracle.com)
-  [![Laravel](https://img.shields.io/badge/Laravel-OCI8-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com)
-  [![License](https://img.shields.io/badge/License-Proprietary-333?style=for-the-badge)](#)
+  [![Laravel](https://img.shields.io/badge/Laravel-OCI8-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://pecl.php.net/package/oci8)
+  [![License](https://img.shields.io/badge/License-Proprietary-333?style=for-the-badge)](./LICENSE)
 </div>
 
 <br/>
@@ -47,6 +47,10 @@
   - [pkg_appointments](#2-pkg_appointments-04_pkg_appointmentssql)
   - [pkg_pharmacy](#3-pkg_pharmacy-05_pkg_pharmacysql)
   - [pkg_ambulance](#4-pkg_ambulance-06_pkg_ambulancesql)
+  - [pkg_facilities](#5-pkg_facilities-09_pkg_facilitiessql)
+  - [pkg_inventory](#6-pkg_inventory-10_pkg_inventorysql)
+  - [pkg_search](#7-pkg_search-11_pkg_searchsql)
+  - [pkg_filters](#8-pkg_filters-12_pkg_filterssql)
   - [Package Design Philosophy](#package-design-philosophy)
 - [Industry Standards & Design Patterns](#-industry-standards--design-patterns)
   - [Database Normalization](#database-normalization)
@@ -90,8 +94,8 @@ All core logic, tables, sequences, triggers, and data manipulation rules are def
 | **Tables** | 24 relational tables |
 | **Sequences** | 24 auto-increment sequences |
 | **Triggers** | 24 BEFORE INSERT triggers |
-| **PL/SQL Packages** | 6 (Users, Appointments, Pharmacy, Ambulance, Facilities, Inventory) |
-| **Stored Procedures** | 16 across all packages |
+| **PL/SQL Packages** | 8 (Users, Appointments, Pharmacy, Ambulance, Facilities, Inventory, Search, Filters) |
+| **Stored Procedures** | 22 across all packages |
 | **Indexes** | 7 performance-optimized indexes |
 | **Frontend** | Laravel 11 via OCI8 bridge |
 
@@ -537,6 +541,26 @@ A simple inventory system for hospital supplies.
 | `add_item` | `p_name`, `p_category`, `p_quantity`, `p_unit`, `p_location`, `OUT p_item_id` | Registers a new supply/inventory item |
 | `update_stock` | `p_item_id`, `p_quantity_change` | Uses row locks (`FOR UPDATE`) to safely modify stock levels via delta changes and calculates dynamic status based on new threshold |
 
+### 7. `pkg_search` ([`11_pkg_search.sql`](oracle_plsql/11_pkg_search.sql))
+
+Handles paginated searching, completely offloading string matching and limit/offset math from the application layer to the database via `SYS_REFCURSOR`.
+
+| Procedure | Parameters | Description |
+|---|---|---|
+| `search_patients` | `p_search`, `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Paginated search of patients by name or email |
+
+### 8. `pkg_filters` ([`12_pkg_filters.sql`](oracle_plsql/12_pkg_filters.sql))
+
+Handles advanced dynamic filtering and dashboard aggregations, completely offloading these tasks to the database via `SYS_REFCURSOR`.
+
+| Procedure | Parameters | Description |
+|---|---|---|
+| `filter_audit_logs` | `p_action`, `p_entity_type`, `p_critical`, `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Dynamic filtering of audit logs |
+| `filter_doctor_appointments` | `p_doctor_id`, `p_filter`, `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Dashboard filter for doctors (today, upcoming, past) |
+| `filter_doctors` | `p_department_slug`, `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Filters public doctor directory by department |
+| `filter_articles` | `p_category_slug`, `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Filters health articles by category |
+| `get_admin_dashboard_metrics` | `p_since_hours`, `OUT p_failed_logins`, `OUT p_failed_payments`, `OUT p_freq_status_changes` | Returns aggregations directly from the audit log |
+
 ### Package Design Philosophy
 
 - **Encapsulation:** Business logic is centralized in PL/SQL packages, reducing application-side complexity and ensuring rules are enforced regardless of which client calls the database
@@ -742,7 +766,11 @@ sqlplus -s hellomed/password123 @run_all.sql
 | 4 | `04_pkg_appointments.sql` | PL/SQL Package for appointment booking (3 procedures) |
 | 5 | `05_pkg_pharmacy.sql` | PL/SQL Package for inventory & ordering (3 procedures) |
 | 6 | `06_pkg_ambulance.sql` | PL/SQL Package for emergency dispatch (3 procedures) |
-| 7 | `07_seed_data.sql` | Demo data: 5 users, 2 departments, 1 doctor, 2 medicines |
+| 7 | `09_pkg_facilities.sql` | PL/SQL Package for facility booking (2 procedures) |
+| 8 | `10_pkg_inventory.sql` | PL/SQL Package for inventory management (2 procedures) |
+| 9 | `11_pkg_search.sql` | PL/SQL Package for search operations (1 procedure) |
+| 10 | `12_pkg_filters.sql` | PL/SQL Package for filtering and aggregations (5 procedures) |
+| 11 | `07_seed_data.sql` | Demo data: 5 users, 2 departments, 1 doctor, 2 medicines |
 
 ### Seed Data (`07_seed_data.sql`)
 
@@ -854,6 +882,8 @@ HelloMed-DB/
 │   ├── 08_test_execution.sql          #    End-to-end test script
 │   ├── 09_pkg_facilities.sql          #    PL/SQL: Facility booking package
 │   ├── 10_pkg_inventory.sql           #    PL/SQL: Inventory management package
+│   ├── 11_pkg_search.sql              #    PL/SQL: Search operations package
+│   ├── 12_pkg_filters.sql             #    PL/SQL: Filtering and aggregation package
 │   └── run_all.sql                    #    Master execution script
 ├── hellomed-laravel/                  # 🌐  Laravel web application
 │   ├── app/                           #    Application logic (Controllers, Models)

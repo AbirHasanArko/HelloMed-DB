@@ -14,28 +14,16 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $since = now()->subDay();
-
-        $recentLogs = AuditLog::query()
-            ->where('created_at', '>=', $since)
-            ->get(['action', 'entity_type', 'entity_id', 'meta']);
-
-        $failedLoginCount = $recentLogs
-            ->where('action', 'auth.login_failed')
-            ->count();
-
-        $failedPaymentCallbackCount = $recentLogs
-            ->filter(function ($log): bool {
-                return $log->action === 'medicine_order.payment_callback'
-                    && (($log->meta['callback_status'] ?? null) === 'failed');
-            })
-            ->count();
-
-        $frequentAppointmentStatusChanges = $recentLogs
-            ->where('action', 'appointment.status_updated')
-            ->groupBy(fn ($log) => $log->entity_type.'#'.$log->entity_id)
-            ->filter(fn ($group) => $group->count() >= 3)
-            ->count();
+        $sinceHours = 24;
+        $pdo = \Illuminate\Support\Facades\DB::getPdo();
+        $stmt = $pdo->prepare('BEGIN pkg_filters.get_admin_dashboard_metrics(:since, :failed_logins, :failed_payments, :freq_status); END;');
+        
+        $stmt->bindParam(':since', $sinceHours, \PDO::PARAM_INT);
+        $stmt->bindParam(':failed_logins', $failedLoginCount, \PDO::PARAM_INT | \PDO::PARAM_INPUT_OUTPUT, 32);
+        $stmt->bindParam(':failed_payments', $failedPaymentCallbackCount, \PDO::PARAM_INT | \PDO::PARAM_INPUT_OUTPUT, 32);
+        $stmt->bindParam(':freq_status', $frequentAppointmentStatusChanges, \PDO::PARAM_INT | \PDO::PARAM_INPUT_OUTPUT, 32);
+        
+        $stmt->execute();
 
         return view('admin.dashboard', [
             'doctorCount' => Doctor::query()->count(),

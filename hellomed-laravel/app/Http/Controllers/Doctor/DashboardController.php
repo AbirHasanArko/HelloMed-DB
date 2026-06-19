@@ -23,33 +23,58 @@ class DashboardController extends Controller
             $filter = 'next';
         }
 
-        $appointmentsQuery = Appointment::query()
-            ->where('doctor_id', $doctor->id);
+        $perPage = 15;
+        $page = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
+        $offset = ($page - 1) * $perPage;
 
-        if ($filter === 'today') {
-            $appointmentsQuery->whereDate('scheduled_for', now()->toDateString());
-        } elseif ($filter === 'next') {
-            $appointmentsQuery->where('scheduled_for', '>=', now());
-        } elseif ($filter === 'past') {
-            $appointmentsQuery->where('scheduled_for', '<', now());
+        $pdo = \Illuminate\Support\Facades\DB::getPdo();
+        $stmt = $pdo->prepare('BEGIN pkg_filters.filter_doctor_appointments(:doctor_id, :filter, :limit, :offset, :total, :cursor); END;');
+        
+        $doctorId = $doctor->id;
+        $stmt->bindParam(':doctor_id', $doctorId, \PDO::PARAM_INT);
+        $stmt->bindParam(':filter', $filter);
+        $stmt->bindParam(':limit', $perPage, \PDO::PARAM_INT);
+        $stmt->bindParam(':offset', $offset, \PDO::PARAM_INT);
+        $stmt->bindParam(':total', $totalCount, \PDO::PARAM_INT | \PDO::PARAM_INPUT_OUTPUT, 32);
+        
+        $cursor = null;
+        $stmt->bindParam(':cursor', $cursor, \PDO::PARAM_STMT);
+        $stmt->execute();
+        oci_execute($cursor);
+        
+        $results = [];
+        while ($row = oci_fetch_assoc($cursor)) {
+            $lowerRow = [];
+            foreach ($row as $k => $v) {
+                $lowerRow[strtolower($k)] = $v;
+            }
+            $results[] = $lowerRow;
         }
 
+        $hydrated = Appointment::hydrate($results);
+        $hydrated->load('user.patientProfile');
+
+        $appointments = new \Illuminate\Pagination\LengthAwarePaginator(
+            $hydrated,
+            $totalCount,
+            $perPage,
+            $page,
+            ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => $request->query()]
+        );
+
         $calendarSummary = Appointment::query()
-            ->selectRaw('DATE(scheduled_for) as appointment_date, COUNT(*) as total')
+            ->selectRaw("TO_CHAR(scheduled_for, 'YYYY-MM-DD') as appointment_date, COUNT(*) as total")
             ->where('doctor_id', $doctor->id)
             ->whereBetween('scheduled_for', [now()->startOfDay(), now()->copy()->addDays(30)->endOfDay()])
-            ->groupByRaw('DATE(scheduled_for)')
-            ->orderByRaw('DATE(scheduled_for)')
+            ->groupByRaw("TO_CHAR(scheduled_for, 'YYYY-MM-DD')")
+            ->orderByRaw("TO_CHAR(scheduled_for, 'YYYY-MM-DD')")
             ->get();
 
         return view('doctor.dashboard', [
             'doctor' => $doctor,
             'appointmentFilter' => $filter,
             'calendarSummary' => $calendarSummary,
-            'appointments' => $appointmentsQuery
-                ->orderByDesc('scheduled_for')
-                ->paginate(15)
-                ->withQueryString(),
+            'appointments' => $appointments,
         ]);
     }
 
