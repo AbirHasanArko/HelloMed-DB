@@ -16,35 +16,23 @@ class AdminPatientController extends Controller
         $page = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
         $offset = ($page - 1) * $perPage;
 
-        $pdo = \Illuminate\Support\Facades\DB::getPdo();
-        $stmt = $pdo->prepare('BEGIN pkg_search.search_patients(:search, :limit, :offset, :total, :cursor); END;');
-        
-        $stmt->bindParam(':search', $search);
-        $stmt->bindParam(':limit', $perPage, \PDO::PARAM_INT);
-        $stmt->bindParam(':offset', $offset, \PDO::PARAM_INT);
-        $stmt->bindParam(':total', $totalCount, \PDO::PARAM_INT | \PDO::PARAM_INPUT_OUTPUT, 32);
-        
-        $cursor = null;
-        $stmt->bindParam(':cursor', $cursor, \PDO::PARAM_STMT);
-        
-        $stmt->execute();
-        
-        oci_execute($cursor);
-        $results = [];
-        while ($row = oci_fetch_assoc($cursor)) {
-            // Lowercase keys from Oracle to match Laravel expectations
-            $lowerRow = [];
-            foreach ($row as $k => $v) {
-                $lowerRow[strtolower($k)] = $v;
-            }
-            $results[] = $lowerRow;
+        $params = [
+            'search' => $search,
+            'limit' => $perPage,
+            'offset' => $offset,
+            'total' => null
+        ];
+
+        $patientsCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_search.search_patients(:search, :limit, :offset, :total, :cursor); END;", $params, \App\Models\User::class);
+        $totalCount = $params['total'];
+
+        foreach ($patientsCollection as $patient) {
+            $patientProfile = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_patient_profile(:user_id, :cursor); END;", ['user_id' => $patient->id], \App\Models\PatientProfile::class)->first();
+            $patient->setRelation('patientProfile', $patientProfile);
         }
 
-        $hydrated = \App\Models\User::hydrate($results);
-        $hydrated->load('patientProfile');
-
         $patients = new \Illuminate\Pagination\LengthAwarePaginator(
-            $hydrated,
+            $patientsCollection,
             $totalCount,
             $perPage,
             $page,
@@ -56,13 +44,25 @@ class AdminPatientController extends Controller
         ]);
     }
 
-    public function show(User $patient): View
+    public function show($id): View
     {
+        $patient = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\User::class)->firstOrFail();
         abort_unless($patient->role === 'patient', 404);
 
-        $patient->load(['patientProfile', 'appointments.doctor', 'appointments' => function($q) {
-            $q->latest('scheduled_for')->take(10);
-        }]);
+        $patientProfile = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_patient_profile(:user_id, :cursor); END;", ['user_id' => $patient->id], \App\Models\PatientProfile::class)->first();
+        $patient->setRelation('patientProfile', $patientProfile);
+
+        $appointments = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_recent_patient_appts(:user_id, :limit, :cursor); END;", ['user_id' => $patient->id, 'limit' => 10], \App\Models\Appointment::class);
+        
+        foreach ($appointments as $appointment) {
+            $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_profile_by_doctor_id(:id, :cursor); END;", ['id' => $appointment->doctor_id], \App\Models\DoctorProfile::class)->first();
+            if ($doctor) {
+                $doctorUser = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $doctor->user_id], \App\Models\User::class)->first();
+                $doctor->setRelation('user', $doctorUser);
+            }
+            $appointment->setRelation('doctor', $doctor);
+        }
+        $patient->setRelation('appointments', $appointments);
 
         return view('admin.patients.show', [
             'patient' => $patient,

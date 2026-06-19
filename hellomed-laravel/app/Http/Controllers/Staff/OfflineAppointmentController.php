@@ -17,11 +17,17 @@ class OfflineAppointmentController extends Controller
 {
     public function create()
     {
-        $departments = Department::whereHas('doctors', function ($query) {
-            $query->where('is_active', true);
-        })->with(['doctors' => function ($query) {
-            $query->where('is_active', true);
-        }])->get();
+        $allDepartments = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_active_departments(:cursor); END;", [], \App\Models\Department::class);
+        $allDoctors = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_all_active_doctors(:cursor); END;", [], \App\Models\Doctor::class);
+        
+        $departments = $allDepartments->filter(function($dept) use ($allDoctors) {
+            $doctors = $allDoctors->where('department_id', $dept->id);
+            if ($doctors->count() > 0) {
+                $dept->setRelation('doctors', $doctors);
+                return true;
+            }
+            return false;
+        })->values();
 
         return view('staff.offline-appointments.create', compact('departments'));
     }
@@ -46,62 +52,56 @@ class OfflineAppointmentController extends Controller
         ]);
 
         return DB::transaction(function () use ($request, $validated) {
-            $user = User::where('email', $validated['patient_email'])->first();
+            // Check if user exists via PL/SQL
+            $user = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_email(:email, :cursor); END;", ['email' => $validated['patient_email']], \App\Models\User::class)->first();
             
+            $userId = $user ? $user->id : null;
+            $passwordStr = Hash::make('password123');
+
             if (!$user) {
-                $user = User::create([
+                // Create user via PL/SQL
+                $createParams = [
                     'name' => $validated['patient_name'],
                     'email' => $validated['patient_email'],
-                    'password' => Hash::make('password123'),
-                    'role' => 'patient',
-                ]);
+                    'password' => $passwordStr,
+                    'out_user_id' => null
+                ];
+                \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.create_patient_user(:name, :email, :password, :out_user_id); END;", $createParams);
+                $userId = $createParams['out_user_id'];
             }
 
-            $user->patientProfile()->updateOrCreate(
-                ['user_id' => $user->id],
-                [
-                    'date_of_birth' => $validated['date_of_birth'] ?? null,
-                    'gender' => $validated['gender'] ?? null,
-                    'height_cm' => $validated['height_cm'] ?? null,
-                    'weight_kg' => $validated['weight_kg'] ?? null,
-                    'known_conditions' => $validated['known_conditions'] ?? null,
-                    'allergies' => $validated['allergies'] ?? null,
-                    'medical_notes' => $validated['medical_notes'] ?? null,
-                ]
-            );
+            // Update patient profile via PL/SQL
+            $profileParams = [
+                'user_id' => $userId,
+                'dob' => $validated['date_of_birth'] ?? null,
+                'gender' => $validated['gender'] ?? null,
+                'height' => $validated['height_cm'] ?? null,
+                'weight' => $validated['weight_kg'] ?? null,
+                'conditions' => $validated['known_conditions'] ?? null,
+                'allergies' => $validated['allergies'] ?? null,
+                'notes' => $validated['medical_notes'] ?? null
+            ];
+            \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_patient_profile(:user_id, TO_DATE(:dob, 'YYYY-MM-DD'), :gender, :height, :weight, :conditions, :allergies, :notes); END;", $profileParams);
 
-            $doctor = Doctor::findOrFail($validated['doctor_id']);
-            $scheduledFor = Carbon::parse($validated['scheduled_date'] . ' ' . $validated['scheduled_time']);
-            $scheduledForStr = $scheduledFor->format('Y-m-d H:i:s');
+            $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_by_id(:id, :cursor); END;", ['id' => $validated['doctor_id']], \App\Models\Doctor::class)->first();
+            $scheduledForStr = Carbon::parse($validated['scheduled_date'] . ' ' . $validated['scheduled_time'])->format('Y-m-d H:i:s');
             
-            $pdo = \Illuminate\Support\Facades\DB::getPdo();
-            $stmt = $pdo->prepare('BEGIN pkg_appointments.book_appointment(:user_id, :doctor_id, :department_id, :service_id, :patient_name, :patient_email, :patient_phone, :service_mode, :scheduled_for, :reason, :appointment_id); END;');
-            
-            $userId = $user->id;
-            $doctorId = $doctor->id;
-            $departmentId = $doctor->department_id;
-            $serviceId = null;
-            $patientName = $validated['patient_name'];
-            $patientEmail = $validated['patient_email'];
-            $patientPhone = $validated['patient_phone'];
-            $serviceMode = 'offline';
-            $reason = $validated['reason'];
-            $appointmentId = null;
-
-            $stmt->bindParam(':user_id', $userId);
-            $stmt->bindParam(':doctor_id', $doctorId);
-            $stmt->bindParam(':department_id', $departmentId);
-            $stmt->bindParam(':service_id', $serviceId);
-            $stmt->bindParam(':patient_name', $patientName);
-            $stmt->bindParam(':patient_email', $patientEmail);
-            $stmt->bindParam(':patient_phone', $patientPhone);
-            $stmt->bindParam(':service_mode', $serviceMode);
-            $stmt->bindParam(':scheduled_for', $scheduledForStr);
-            $stmt->bindParam(':reason', $reason);
-            $stmt->bindParam(':appointment_id', $appointmentId, \PDO::PARAM_INT | \PDO::PARAM_INPUT_OUTPUT, 32);
+            $apptParams = [
+                'user_id' => $userId,
+                'doctor_id' => $doctor->id,
+                'department_id' => $doctor->department_id,
+                'service_id' => null,
+                'patient_name' => $validated['patient_name'],
+                'patient_email' => $validated['patient_email'],
+                'patient_phone' => $validated['patient_phone'],
+                'service_mode' => 'offline',
+                'scheduled_for' => $scheduledForStr,
+                'reason' => $validated['reason'],
+                'out_appointment_id' => null
+            ];
 
             try {
-                $stmt->execute();
+                \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_appointments.book_appointment(:user_id, :doctor_id, :department_id, :service_id, :patient_name, :patient_email, :patient_phone, :service_mode, :scheduled_for, :reason, :out_appointment_id); END;", $apptParams);
             } catch (\Exception $e) {
                 if (str_contains($e->getMessage(), 'Time conflict')) {
                     throw ValidationException::withMessages([
@@ -111,13 +111,20 @@ class OfflineAppointmentController extends Controller
                 throw $e;
             }
 
-            // The package creates it as 'pending', but offline bookings are usually confirmed immediately
-            $appointment = Appointment::findOrFail($appointmentId);
-            $appointment->status = 'confirmed';
-            $appointment->save();
+            $appointmentId = $apptParams['out_appointment_id'];
 
-            return redirect()->route('admin.appointments.index')
-                ->with('success', 'Offline appointment successfully booked for ' . $user->name . '. Password for new account (if any) is password123. Token: ' . $appointment->token_number);
+            // Confirm offline appointment directly
+            $updateParams = [
+                'id' => $appointmentId,
+                'status' => 'confirmed'
+            ];
+            \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_appointments.update_appointment_status(:id, :status); END;", $updateParams);
+
+            // Fetch appointment to get token number
+            $appointment = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_by_id(:id, :cursor); END;", ['id' => $appointmentId], \App\Models\Appointment::class)->first();
+
+            $successMsg = 'Offline appointment successfully booked for ' . $validated['patient_name'] . '. Password for new account (if any) is password123. Token: ' . $appointment->token_number;
+            return redirect()->route('admin.appointments.index')->with('success', $successMsg);
         });
     }
 }

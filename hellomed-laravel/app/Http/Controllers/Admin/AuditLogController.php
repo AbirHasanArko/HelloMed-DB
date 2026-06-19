@@ -56,9 +56,12 @@ class AuditLogController extends Controller
             ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => $request->query()]
         );
 
+        $entityTypesResult = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_audit_log_entity_types(:cursor); END;");
+        $entityTypes = collect($entityTypesResult)->pluck('entity_type');
+
         return view('admin.audit-logs.index', [
             'logs' => $logs,
-            'entityTypes' => AuditLog::query()->select('entity_type')->distinct()->orderBy('entity_type')->pluck('entity_type'),
+            'entityTypes' => $entityTypes,
         ]);
     }
 

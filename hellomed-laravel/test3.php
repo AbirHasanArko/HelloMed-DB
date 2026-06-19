@@ -1,0 +1,1 @@
+<?php $sql = file_get_contents("d:/Documents/HelloMed-DB/oracle_plsql/13_pkg_crud_writes.sql"); $blocks = explode("/", $sql); foreach($blocks as $b) { $b = trim($b); if($b) { try { DB::unprepared($b); } catch(Exception $e) { echo $e->getMessage() . "\n"; } } }

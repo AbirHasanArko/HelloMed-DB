@@ -16,8 +16,9 @@ use Illuminate\Validation\ValidationException;
 
 class AppointmentController extends Controller
 {
-    public function create(Doctor $doctor)
+    public function create($doctor)
     {
+        $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_by_id(:id, :cursor); END;", ['id' => $doctor], \App\Models\Doctor::class)->firstOrFail();
         return view('appointments.create', compact('doctor'));
     }
 
@@ -25,73 +26,67 @@ class AppointmentController extends Controller
     {
         $validated = $request->validated();
 
-        $appointment = DB::transaction(function () use ($request, $validated) {
-            $doctor = Doctor::query()->lockForUpdate()->findOrFail($validated['doctor_id']);
-            $scheduledFor = Carbon::parse($validated['scheduled_for']);
+        $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_by_id(:id, :cursor); END;", ['id' => $validated['doctor_id']], \App\Models\Doctor::class)->firstOrFail();
+        $scheduledFor = Carbon::parse($validated['scheduled_for']);
+        $scheduledForStr = $scheduledFor->format('Y-m-d H:i:s');
 
-            $alreadyBooked = Appointment::query()
-                ->where('doctor_id', $doctor->id)
-                ->where('scheduled_for', $scheduledFor)
-                ->whereIn('status', ['pending', 'confirmed'])
-                ->exists();
+        $params = [
+            'doctor_id' => $doctor->id,
+            'scheduled_for' => $scheduledForStr,
+            'exclude_id' => 0,
+            'count' => null
+        ];
+        
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_reads.check_slot_availability(:doctor_id, TO_TIMESTAMP(:scheduled_for, 'YYYY-MM-DD HH24:MI:SS'), :exclude_id, :count); END;", $params);
 
-            if ($alreadyBooked) {
-                throw ValidationException::withMessages([
-                    'scheduled_for' => 'The selected time slot is already booked.',
-                ]);
-            }
+        if ($params['count'] > 0) {
+            throw ValidationException::withMessages([
+                'scheduled_for' => 'The selected time slot is already booked.',
+            ]);
+        }
 
-            $pdo = \Illuminate\Support\Facades\DB::getPdo();
-            $stmt = $pdo->prepare('BEGIN pkg_appointments.book_appointment(:user_id, :doctor_id, :department_id, :service_id, :patient_name, :patient_email, :patient_phone, :service_mode, :scheduled_for, :reason, :appointment_id); END;');
+        $bookParams = [
+            'user_id' => $request->user()?->id,
+            'doctor_id' => $validated['doctor_id'],
+            'department_id' => $validated['department_id'],
+            'service_id' => $validated['service_id'] ?? null,
+            'patient_name' => $validated['patient_name'],
+            'patient_email' => $validated['patient_email'],
+            'patient_phone' => $validated['patient_phone'],
+            'service_mode' => $validated['service_mode'],
+            'scheduled_for' => $scheduledForStr,
+            'reason' => $validated['reason'],
+            'appointment_id' => null
+        ];
+
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_appointments.book_appointment(:user_id, :doctor_id, :department_id, :service_id, :patient_name, :patient_email, :patient_phone, :service_mode, TO_TIMESTAMP(:scheduled_for, 'YYYY-MM-DD HH24:MI:SS'), :reason, :appointment_id); END;", $bookParams);
+
+        $appointmentId = $bookParams['appointment_id'];
+
+        $appointment = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_by_id(:id, :cursor); END;", ['id' => $appointmentId], \App\Models\Appointment::class)->firstOrFail();
+        
+        $paymentStatus = $request->input('payment_method') && $request->input('payment_method') !== 'none' ? 'pending' : 'not_required';
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_appt_payment_status(:id, :status); END;", ['id' => $appointment->id, 'status' => $paymentStatus]);
+        $appointment->payment_status = $paymentStatus;
+
+        if ($request->filled('payment_method') && $request->input('payment_method') !== 'none') {
+            $amount = $request->input('service_mode') === 'online'
+                ? ($doctor->online_fee ?? $doctor->consultation_fee)
+                : ($doctor->offline_fee ?? $doctor->consultation_fee);
+
+            $paymentParams = [
+                'appointment_id' => $appointment->id,
+                'user_id' => $request->user()?->id,
+                'method' => $request->input('payment_method'),
+                'amount' => $amount,
+                'status' => 'pending',
+                'id' => null
+            ];
             
-            $userId = $request->user()?->id;
-            $doctorId = $validated['doctor_id'];
-            $departmentId = $validated['department_id'];
-            $serviceId = $validated['service_id'] ?? null;
-            $patientName = $validated['patient_name'];
-            $patientEmail = $validated['patient_email'];
-            $patientPhone = $validated['patient_phone'];
-            $serviceMode = $validated['service_mode'];
-            $scheduledForStr = $scheduledFor->format('Y-m-d H:i:s');
-            $reason = $validated['reason'];
-            $appointmentId = null;
+            \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.create_payment(:appointment_id, :user_id, :method, :amount, :status, :id); END;", $paymentParams);
+        }
 
-            $stmt->bindParam(':user_id', $userId);
-            $stmt->bindParam(':doctor_id', $doctorId);
-            $stmt->bindParam(':department_id', $departmentId);
-            $stmt->bindParam(':service_id', $serviceId);
-            $stmt->bindParam(':patient_name', $patientName);
-            $stmt->bindParam(':patient_email', $patientEmail);
-            $stmt->bindParam(':patient_phone', $patientPhone);
-            $stmt->bindParam(':service_mode', $serviceMode);
-            $stmt->bindParam(':scheduled_for', $scheduledForStr);
-            $stmt->bindParam(':reason', $reason);
-            $stmt->bindParam(':appointment_id', $appointmentId, \PDO::PARAM_INT | \PDO::PARAM_INPUT_OUTPUT, 32);
-
-            $stmt->execute();
-
-            $appointment = Appointment::query()->findOrFail($appointmentId);
-            
-            // Set additional attributes not handled by the basic PL/SQL proc
-            $appointment->payment_status = $request->input('payment_method') && $request->input('payment_method') !== 'none' ? 'pending' : 'not_required';
-            $appointment->save();
-
-            if ($request->filled('payment_method') && $request->input('payment_method') !== 'none') {
-                $amount = $request->input('service_mode') === 'online'
-                    ? ($appointment->doctor->online_fee ?? $appointment->doctor->consultation_fee)
-                    : ($appointment->doctor->offline_fee ?? $appointment->doctor->consultation_fee);
-
-                Payment::query()->create([
-                    'appointment_id' => $appointment->id,
-                    'user_id' => $request->user()?->id,
-                    'method' => $request->input('payment_method'),
-                    'amount' => $amount,
-                    'status' => 'pending',
-                ]);
-            }
-
-            return $appointment;
-        });
+        $appointment->setRelation('doctor', $doctor);
 
         NotificationService::sendEmail(
             $appointment->patient_email,
@@ -102,10 +97,8 @@ class AppointmentController extends Controller
             $appointment
         );
 
-        $adminRecipients = User::query()
-            ->whereIn('role', ['admin', 'staff'])
-            ->pluck('email')
-            ->all();
+        $adminUsers = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_admin_staff_users(:cursor); END;", [], \App\Models\User::class);
+        $adminRecipients = $adminUsers->pluck('email')->all();
 
         if ($adminRecipients !== []) {
             foreach ($adminRecipients as $recipient) {

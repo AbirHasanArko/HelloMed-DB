@@ -11,8 +11,13 @@ use Illuminate\Support\Facades\Storage;
 
 class AppointmentChatController extends Controller
 {
-    public function index(Request $request, Appointment $appointment): JsonResponse
+    public function index(Request $request, $id): JsonResponse
     {
+        $appointment = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\Appointment::class)->firstOrFail();
+        
+        $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_by_id(:id, :cursor); END;", ['id' => $appointment->doctor_id], \App\Models\Doctor::class)->first();
+        $appointment->setRelation('doctor', $doctor);
+
         $user = $request->user();
         $this->assertParticipant($appointment, $user->id);
 
@@ -23,15 +28,14 @@ class AppointmentChatController extends Controller
             ]);
         }
 
-        $messages = $appointment->chatMessages()
-            ->with('user')
-            ->orderBy('created_at')
-            ->get()
-            ->map(function ($message) use ($user) {
+        $chatMessages = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_chat_messages(:id, :cursor); END;", ['id' => $id], \App\Models\ChatMessage::class);
+        
+        $messages = $chatMessages->map(function ($message) use ($user) {
+                $msgUser = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $message->user_id], \App\Models\User::class)->first();
                 return [
                     'id' => $message->id,
                     'sender_id' => $message->user_id,
-                    'sender_name' => $message->user?->name,
+                    'sender_name' => $msgUser?->name,
                     'is_mine' => $message->user_id === $user->id,
                     'message' => $message->message,
                     'created_at' => $message->created_at?->format('M d, Y h:i A'),
@@ -48,8 +52,13 @@ class AppointmentChatController extends Controller
         ]);
     }
 
-    public function store(Request $request, Appointment $appointment): RedirectResponse
+    public function store(Request $request, $id): RedirectResponse
     {
+        $appointment = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\Appointment::class)->firstOrFail();
+        
+        $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_by_id(:id, :cursor); END;", ['id' => $appointment->doctor_id], \App\Models\Doctor::class)->first();
+        $appointment->setRelation('doctor', $doctor);
+
         $user = $request->user();
         $this->assertParticipant($appointment, $user->id);
 
@@ -77,20 +86,27 @@ class AppointmentChatController extends Controller
             $attachmentSize = $file->getSize();
         }
 
-        $appointment->chatMessages()->create([
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.create_appt_chat_message(:appointment_id, :user_id, :message, :attachment_path, :attachment_name, :attachment_mime, :attachment_size, :id); END;", [
+            'appointment_id' => $appointment->id,
             'user_id' => $user->id,
             'message' => $validated['message'] ?? '',
             'attachment_path' => $attachmentPath,
             'attachment_name' => $attachmentName,
             'attachment_mime' => $attachmentMime,
             'attachment_size' => $attachmentSize,
+            'id' => null
         ]);
 
         return back()->with('status', 'Message sent.');
     }
 
-    public function markRead(Request $request, Appointment $appointment): JsonResponse
+    public function markRead(Request $request, $id): JsonResponse
     {
+        $appointment = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\Appointment::class)->firstOrFail();
+        
+        $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_by_id(:id, :cursor); END;", ['id' => $appointment->doctor_id], \App\Models\Doctor::class)->first();
+        $appointment->setRelation('doctor', $doctor);
+
         $user = $request->user();
         $this->assertParticipant($appointment, $user->id);
 
@@ -98,12 +114,14 @@ class AppointmentChatController extends Controller
             return response()->json(['updated' => 0]);
         }
 
-        $updated = $appointment->chatMessages()
-            ->where('user_id', '!=', $user->id)
-            ->whereNull('read_at')
-            ->update(['read_at' => now()]);
+        $params = [
+            'appointment_id' => $appointment->id,
+            'user_id' => $user->id,
+            'updated' => null
+        ];
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.mark_appt_chat_messages_read(:appointment_id, :user_id, :updated); END;", $params);
 
-        return response()->json(['updated' => $updated]);
+        return response()->json(['updated' => $params['updated']]);
     }
 
     private function assertParticipant(Appointment $appointment, int $userId): void

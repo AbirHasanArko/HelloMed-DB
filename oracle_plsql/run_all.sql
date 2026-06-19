@@ -8,5 +8,7 @@
 @10_pkg_inventory.sql
 @11_pkg_search.sql
 @12_pkg_filters.sql
+@13_pkg_crud_writes.sql
+@14_pkg_crud_reads.sql
 @07_seed_data.sql
 exit

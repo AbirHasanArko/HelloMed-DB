@@ -13,15 +13,42 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OrderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return view('pharmacist.orders.index', [
-            'orders' => MedicineOrder::query()->with(['user', 'items.medicine'])->latest()->paginate(20),
-        ]);
+        $page = $request->get('page', 1);
+        $perPage = 20;
+        $offset = ($page - 1) * $perPage;
+        
+        $params = [
+            'limit' => $perPage,
+            'offset' => $offset,
+            'total' => null
+        ];
+        
+        $ordersCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_paginated_medicine_orders(:limit, :offset, :total, :cursor); END;", $params, \App\Models\MedicineOrder::class);
+        $total = $params['total'];
+        
+        foreach ($ordersCollection as $order) {
+            $user = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $order->user_id], \App\Models\User::class)->first();
+            $order->setRelation('user', $user);
+            
+            $items = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_medicine_order_items(:order_id, :cursor); END;", ['order_id' => $order->id], \App\Models\MedicineOrderItem::class);
+            foreach ($items as $item) {
+                $medicine = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_medicine_by_id(:id, :cursor); END;", ['id' => $item->medicine_id], \App\Models\Medicine::class)->first();
+                $item->setRelation('medicine', $medicine);
+            }
+            $order->setRelation('items', $items);
+        }
+        
+        $orders = new \Illuminate\Pagination\LengthAwarePaginator($ordersCollection, $total, $perPage, $page, ['path' => $request->url()]);
+
+        return view('pharmacist.orders.index', compact('orders'));
     }
 
-    public function update(Request $request, MedicineOrder $order)
+    public function update(Request $request, $id)
     {
+        $order = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_medicine_order_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\MedicineOrder::class)->firstOrFail();
+
         $old = [
             'status' => $order->status,
             'payment_status' => $order->payment_status,
@@ -32,32 +59,21 @@ class OrderController extends Controller
             'payment_status' => ['required', 'in:pending,paid,failed,refunded'],
         ]);
 
-        DB::transaction(function () use ($order, $validated): void {
-            $lockedOrder = MedicineOrder::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
-            $lockedOrder->update($validated);
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_medicine_order_status(:id, :status, :payment_status); END;", [
+            'id' => $id,
+            'status' => $validated['status'],
+            'payment_status' => $validated['payment_status']
+        ]);
 
-            $needsRelease = filled($lockedOrder->inventory_committed_at)
-                && blank($lockedOrder->inventory_released_at)
-                && ($lockedOrder->status === 'cancelled' || $lockedOrder->payment_status === 'refunded');
+        $needsRelease = filled($order->inventory_committed_at)
+            && blank($order->inventory_released_at)
+            && ($validated['status'] === 'cancelled' || $validated['payment_status'] === 'refunded');
 
-            if ($needsRelease) {
-                MedicineOrderItem::query()
-                    ->with('medicine')
-                    ->where('medicine_order_id', $lockedOrder->id)
-                    ->get()
-                    ->each(function ($item): void {
-                        if ($item->medicine) {
-                            $item->medicine->increment('stock_quantity', $item->quantity);
-                        }
-                    });
+        if ($needsRelease) {
+            \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_inventory.release_inventory_for_order(:order_id); END;", ['order_id' => $id]);
+        }
 
-                $lockedOrder->update([
-                    'inventory_released_at' => now(),
-                ]);
-            }
-        });
-
-        $order->refresh();
+        $order = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_medicine_order_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\MedicineOrder::class)->firstOrFail();
 
         AuditLogger::log('medicine_order.updated', $order, $old, [
             'status' => $order->status,
@@ -68,8 +84,10 @@ class OrderController extends Controller
         return back()->with('status', 'Medicine order updated.');
     }
 
-    public function prescription(MedicineOrder $order): StreamedResponse
+    public function prescription($id): StreamedResponse
     {
+        $order = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_medicine_order_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\MedicineOrder::class)->firstOrFail();
+
         abort_unless($order->prescription_path, 404);
 
         $disk = Storage::disk('public');

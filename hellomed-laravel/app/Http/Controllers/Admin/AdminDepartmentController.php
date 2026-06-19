@@ -11,10 +11,25 @@ use Illuminate\View\View;
 
 class AdminDepartmentController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $page = $request->get('page', 1);
+        $perPage = 15;
+        $offset = ($page - 1) * $perPage;
+
+        $params = [
+            'limit' => $perPage,
+            'offset' => $offset,
+            'total' => null
+        ];
+
+        $departmentsCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_paginated_departments(:limit, :offset, :total, :cursor); END;", $params, \App\Models\Department::class);
+        $total = $params['total'];
+
+        $departments = new \Illuminate\Pagination\LengthAwarePaginator($departmentsCollection, $total, $perPage, $page, ['path' => $request->url()]);
+
         return view('admin.departments.index', [
-            'departments' => Department::query()->withCount('doctors')->latest()->paginate(15),
+            'departments' => $departments,
         ]);
     }
 
@@ -40,26 +55,33 @@ class AdminDepartmentController extends Controller
             $imagePath = $request->file('image')->store('department-images', 'public');
         }
 
-        Department::query()->create([
-            ...collect($validated)->except('image')->all(),
-            'image_path' => $imagePath,
-            'is_active' => $request->boolean('is_active', true),
-            'is_featured' => $request->boolean('is_featured', false),
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.create_department(:name, :description, :service_scope, :is_active, :is_featured, :featured_order, :image_path, :id); END;", [
+            'name' => $validated['name'],
+            'description' => $validated['description'],
+            'service_scope' => $validated['service_scope'],
+            'is_active' => $request->boolean('is_active', true) ? 1 : 0,
+            'is_featured' => $request->boolean('is_featured', false) ? 1 : 0,
             'featured_order' => $request->integer('featured_order', 0),
+            'image_path' => $imagePath,
+            'id' => null
         ]);
 
         return redirect()->route('admin.departments.index')->with('status', 'Department created successfully.');
     }
 
-    public function edit(Department $department): View
+    public function edit($id): View
     {
+        $department = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_department_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\Department::class)->firstOrFail();
+
         return view('admin.departments.edit', [
             'department' => $department,
         ]);
     }
 
-    public function update(Request $request, Department $department): RedirectResponse
+    public function update(Request $request, $id): RedirectResponse
     {
+        $department = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_department_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\Department::class)->firstOrFail();
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:departments,name,'.$department->id],
             'description' => ['required', 'string', 'max:1000'],
@@ -78,12 +100,15 @@ class AdminDepartmentController extends Controller
             $imagePath = $request->file('image')->store('department-images', 'public');
         }
 
-        $department->update([
-            ...collect($validated)->except('image')->all(),
-            'image_path' => $imagePath,
-            'is_active' => $request->boolean('is_active'),
-            'is_featured' => $request->boolean('is_featured', false),
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_department(:id, :name, :description, :service_scope, :is_active, :is_featured, :featured_order, :image_path); END;", [
+            'id' => $department->id,
+            'name' => $validated['name'],
+            'description' => $validated['description'],
+            'service_scope' => $validated['service_scope'],
+            'is_active' => $request->boolean('is_active') ? 1 : 0,
+            'is_featured' => $request->boolean('is_featured', false) ? 1 : 0,
             'featured_order' => $request->integer('featured_order', 0),
+            'image_path' => $imagePath
         ]);
 
         return redirect()->route('admin.departments.index')->with('status', 'Department updated successfully.');

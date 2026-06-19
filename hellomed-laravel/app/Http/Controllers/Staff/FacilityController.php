@@ -14,15 +14,19 @@ class FacilityController extends Controller
 {
     public function index()
     {
-        $rooms = FacilityRoom::with(['bookings' => function($q) {
-            $q->where('start_time', '>=', now()->startOfDay())->orderBy('start_time');
-        }])->get();
+        $rooms = collect(\App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_all_facility_rooms(:cursor); END;", [], \App\Models\FacilityRoom::class));
+        
+        foreach ($rooms as $room) {
+            $bookings = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_future_facility_bookings(:room_id, :cursor); END;", ['room_id' => $room->id], \App\Models\FacilityBooking::class);
+            $room->setRelation('bookings', collect($bookings));
+        }
+
         return view('staff.facilities.index', compact('rooms'));
     }
 
     public function create()
     {
-        $rooms = FacilityRoom::where('is_active', true)->get();
+        $rooms = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_all_active_facility_rooms(:cursor); END;", [], \App\Models\FacilityRoom::class);
         return view('staff.facilities.create', compact('rooms'));
     }
 

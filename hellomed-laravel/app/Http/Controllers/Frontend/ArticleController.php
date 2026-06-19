@@ -39,7 +39,17 @@ class ArticleController extends Controller
         }
 
         $hydrated = Article::hydrate($results);
-        $hydrated->load(['category', 'author.doctorProfile']);
+        foreach ($hydrated as $article) {
+            $category = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_active_article_categories(:cursor); END;", [], \App\Models\ArticleCategory::class)->where('id', $article->category_id)->first();
+            $article->setRelation('category', $category);
+
+            $author = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $article->user_id], \App\Models\User::class)->first();
+            if ($author) {
+                $authorProfile = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_profile(:user_id, :cursor); END;", ['user_id' => $author->id], \App\Models\DoctorProfile::class)->first();
+                $author->setRelation('doctorProfile', $authorProfile);
+            }
+            $article->setRelation('author', $author);
+        }
 
         $articles = new \Illuminate\Pagination\LengthAwarePaginator(
             $hydrated,
@@ -52,12 +62,35 @@ class ArticleController extends Controller
         return view('articles.index', compact('articles'));
     }
 
-    public function show(Article $article)
+    public function show($id)
     {
+        $article = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_article_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\Article::class)->firstOrFail();
         abort_unless($article->is_published, 404);
 
-        $article->load(['category', 'author.doctorProfile', 'comments.user']);
-        $averageRating = round((float) $article->comments()->whereNotNull('rating')->avg('rating'), 1);
+        $category = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_active_article_categories(:cursor); END;", [], \App\Models\ArticleCategory::class)->where('id', $article->category_id)->first();
+        $article->setRelation('category', $category);
+
+        $author = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $article->user_id], \App\Models\User::class)->first();
+        if ($author) {
+            $authorProfile = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_profile(:user_id, :cursor); END;", ['user_id' => $author->id], \App\Models\DoctorProfile::class)->first();
+            $author->setRelation('doctorProfile', $authorProfile);
+        }
+        $article->setRelation('author', $author);
+
+        $comments = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_article_comments(:article_id, :cursor); END;", ['article_id' => $article->id], \App\Models\ArticleComment::class);
+        $totalRating = 0;
+        $ratingCount = 0;
+        foreach ($comments as $comment) {
+            $commentUser = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $comment->user_id], \App\Models\User::class)->first();
+            $comment->setRelation('user', $commentUser);
+            if ($comment->rating !== null) {
+                $totalRating += $comment->rating;
+                $ratingCount++;
+            }
+        }
+        $article->setRelation('comments', $comments);
+        
+        $averageRating = $ratingCount > 0 ? round((float) ($totalRating / $ratingCount), 1) : 0;
 
         return view('articles.show', compact('article', 'averageRating'));
     }

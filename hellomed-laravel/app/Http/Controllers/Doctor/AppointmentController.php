@@ -13,18 +13,39 @@ use Illuminate\View\View;
 
 class AppointmentController extends Controller
 {
-    public function show(Appointment $appointment): View
+    public function show($id): View
     {
         $doctor = request()->user()->doctorProfile;
+        $appointment = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\Appointment::class)->firstOrFail();
         abort_unless($doctor && $appointment->doctor_id === $doctor->id, 403);
 
+        $user = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $appointment->user_id], \App\Models\User::class)->first();
+        if ($user) {
+            $patientProfile = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_patient_profile(:user_id, :cursor); END;", ['user_id' => $user->id], \App\Models\PatientProfile::class)->first();
+            $user->setRelation('patientProfile', $patientProfile);
+        }
+        $appointment->setRelation('user', $user);
+
+        $chatMessages = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_chat_messages(:id, :cursor); END;", ['id' => $id], \App\Models\ChatMessage::class);
+        foreach ($chatMessages as $msg) {
+            $msgUser = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $msg->user_id], \App\Models\User::class)->first();
+            $msg->setRelation('user', $msgUser);
+        }
+        $appointment->setRelation('chatMessages', $chatMessages);
+
+        $prescriptionItems = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appt_prescription_items(:id, :cursor); END;", ['id' => $id], \App\Models\PrescriptionItem::class);
+        foreach ($prescriptionItems as $item) {
+            $medicine = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_medicine_by_id(:id, :cursor); END;", ['id' => $item->medicine_id], \App\Models\Medicine::class)->first();
+            $item->setRelation('medicine', $medicine);
+        }
+        $appointment->setRelation('prescriptionItems', $prescriptionItems);
+
+        $medicinesCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_all_active_medicines(:cursor); END;", [], \App\Models\Medicine::class);
+
         return view('doctor.appointment-show', [
-            'appointment' => $appointment->load(['user.patientProfile', 'chatMessages.user', 'prescriptionItems.medicine']),
-            'medicines' => Medicine::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'power', 'amount']),
-            'medicinesForJs' => Medicine::query()
-                ->where('is_active', true)
-                ->orderBy('name')
-                ->get(['id', 'name', 'power', 'amount'])
+            'appointment' => $appointment,
+            'medicines' => $medicinesCollection,
+            'medicinesForJs' => $medicinesCollection
                 ->map(fn ($medicine) => [
                     'id' => $medicine->id,
                     'name' => $medicine->name,
@@ -44,9 +65,10 @@ class AppointmentController extends Controller
         ]);
     }
 
-    public function updateMeetingLink(Request $request, Appointment $appointment): RedirectResponse
+    public function updateMeetingLink(Request $request, $id): RedirectResponse
     {
         $doctor = $request->user()->doctorProfile;
+        $appointment = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\Appointment::class)->firstOrFail();
         abort_unless($doctor && $appointment->doctor_id === $doctor->id, 403);
 
         if ($appointment->service_mode !== 'online') {
@@ -61,9 +83,12 @@ class AppointmentController extends Controller
 
         $oldMeetingLink = $appointment->online_meeting_link;
 
-        $appointment->update([
-            'online_meeting_link' => $validated['online_meeting_link'],
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_appointments.attach_meeting_link(:id, :link); END;", [
+            'id' => $appointment->id,
+            'link' => $validated['online_meeting_link']
         ]);
+        
+        $appointment->online_meeting_link = $validated['online_meeting_link'];
 
         AuditLogger::log('appointment.meeting_link_updated', $appointment, [
             'online_meeting_link' => $oldMeetingLink,
@@ -74,9 +99,10 @@ class AppointmentController extends Controller
         return back()->with('status', 'Online meeting link updated.');
     }
 
-    public function updatePrescription(Request $request, Appointment $appointment): RedirectResponse
+    public function updatePrescription(Request $request, $id): RedirectResponse
     {
         $doctor = $request->user()->doctorProfile;
+        $appointment = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\Appointment::class)->firstOrFail();
         abort_unless($doctor && $appointment->doctor_id === $doctor->id, 403);
 
         $validated = $request->validate([
@@ -117,8 +143,14 @@ class AppointmentController extends Controller
         if ($highDosageFound) {
             $safetyWarnings[] = 'High frequency dosage pattern detected. Please re-check dosage instructions.';
         }
+        
+        $user = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $appointment->user_id], \App\Models\User::class)->first();
+        $patientProfile = null;
+        if ($user) {
+            $patientProfile = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_patient_profile(:user_id, :cursor); END;", ['user_id' => $user->id], \App\Models\PatientProfile::class)->first();
+        }
 
-        $allergies = collect(explode(',', (string) ($appointment->user?->patientProfile?->allergies ?? '')))
+        $allergies = collect(explode(',', (string) ($patientProfile?->allergies ?? '')))
             ->map(fn (string $allergy): string => mb_strtolower(trim($allergy)))
             ->filter();
 
@@ -174,41 +206,50 @@ class AppointmentController extends Controller
             'prescription_follow_up_date',
             'status',
         ]);
+        
+        $newStatus = in_array($appointment->status, ['pending', 'confirmed'], true) ? 'completed' : $appointment->status;
 
-        DB::transaction(function () use ($appointment, $validated, $composed, $medicinesText, $items, $oldPrescription, $safetyNotes): void {
-            $appointment->update([
-                'doctor_prescription' => $composed,
-                'prescription_diagnosis' => $validated['prescription_diagnosis'],
-                'prescription_medicines' => $medicinesText,
-                'prescription_advice' => $validated['prescription_advice'],
-                'prescription_safety_notes' => $safetyNotes !== '' ? $safetyNotes : null,
-                'prescription_follow_up_date' => $validated['prescription_follow_up_date'] ?? null,
-                'prescription_written_at' => now(),
-                'status' => in_array($appointment->status, ['pending', 'confirmed'], true) ? 'completed' : $appointment->status,
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_appt_prescription(:id, :doc_prescription, :diagnosis, :medicines, :advice, :safety_notes, TO_DATE(:follow_up, 'YYYY-MM-DD'), :status); END;", [
+            'id' => $appointment->id,
+            'doc_prescription' => $composed,
+            'diagnosis' => $validated['prescription_diagnosis'],
+            'medicines' => $medicinesText,
+            'advice' => $validated['prescription_advice'],
+            'safety_notes' => $safetyNotes !== '' ? $safetyNotes : null,
+            'follow_up' => $validated['prescription_follow_up_date'] ?? null,
+            'status' => $newStatus
+        ]);
+        
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.delete_prescription_items(:appointment_id); END;", [
+            'appointment_id' => $appointment->id
+        ]);
+        
+        foreach ($items as $index => $item) {
+            \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.create_prescription_item(:appointment_id, :medicine_id, :medicine_name, :amount, :dosage, :intake_time, :instructions, :sort_order, :id); END;", [
+                'appointment_id' => $appointment->id,
+                'medicine_id' => $item['medicine_id'] ?? null,
+                'medicine_name' => $item['medicine_name'],
+                'amount' => $item['amount'] ?? null,
+                'dosage' => $item['dosage'] ?? null,
+                'intake_time' => $item['intake_time'] ?? null,
+                'instructions' => $item['instructions'] ?? null,
+                'sort_order' => $index + 1,
+                'id' => null
             ]);
+        }
+        
+        $appointment = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\Appointment::class)->firstOrFail();
+        $prescriptionItems = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appt_prescription_items(:id, :cursor); END;", ['id' => $id], \App\Models\PrescriptionItem::class);
+        $appointment->setRelation('prescriptionItems', $prescriptionItems);
 
-            $appointment->prescriptionItems()->delete();
-            foreach ($items as $index => $item) {
-                $appointment->prescriptionItems()->create([
-                    'medicine_id' => $item['medicine_id'] ?? null,
-                    'medicine_name' => $item['medicine_name'],
-                    'amount' => $item['amount'] ?? null,
-                    'dosage' => $item['dosage'] ?? null,
-                    'intake_time' => $item['intake_time'] ?? null,
-                    'instructions' => $item['instructions'] ?? null,
-                    'sort_order' => $index + 1,
-                ]);
-            }
-
-            AuditLogger::log('appointment.prescription_updated', $appointment, $oldPrescription, [
-                'prescription_diagnosis' => $appointment->prescription_diagnosis,
-                'prescription_medicines' => $appointment->prescription_medicines,
-                'prescription_advice' => $appointment->prescription_advice,
-                'prescription_follow_up_date' => optional($appointment->prescription_follow_up_date)->toDateString(),
-                'status' => $appointment->status,
-                'prescription_items_count' => $appointment->prescriptionItems()->count(),
-            ]);
-        });
+        AuditLogger::log('appointment.prescription_updated', $appointment, $oldPrescription, [
+            'prescription_diagnosis' => $appointment->prescription_diagnosis,
+            'prescription_medicines' => $appointment->prescription_medicines,
+            'prescription_advice' => $appointment->prescription_advice,
+            'prescription_follow_up_date' => optional($appointment->prescription_follow_up_date)->toDateString(),
+            'status' => $appointment->status,
+            'prescription_items_count' => $appointment->prescriptionItems()->count(),
+        ]);
 
         return back()->with('status', 'Prescription saved. Patient can now download it as PDF.');
     }

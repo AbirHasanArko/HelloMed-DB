@@ -11,38 +11,82 @@ use Illuminate\View\View;
 
 class PatientDashboardController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $user = request()->user();
+        $user = $request->user();
+        $profile = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_patient_profile(:user_id, :cursor); END;", ['user_id' => $user->id], \App\Models\PatientProfile::class)->first();
 
-        $profile = $user->patientProfile;
+        $page = $request->get('page', 1);
+        $perPage = 15;
+        $offset = ($page - 1) * $perPage;
+
+        $params = [
+            'user_id' => $user->id,
+            'limit' => $perPage,
+            'offset' => $offset,
+            'total' => null
+        ];
+
+        $appointmentsCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_paginated_patient_appts(:user_id, :limit, :offset, :total, :cursor); END;", $params, \App\Models\Appointment::class);
+        $total = $params['total'];
+
+        foreach ($appointmentsCollection as $appt) {
+            $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_by_id(:id, :cursor); END;", ['id' => $appt->doctor_id], \App\Models\Doctor::class)->first();
+            if ($doctor) {
+                $department = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_department_by_id(:department_id, :cursor); END;", ['department_id' => $doctor->department_id], \App\Models\Department::class)->first();
+                $doctor->setRelation('department', $department);
+            }
+            $appt->setRelation('doctor', $doctor);
+            
+            $payments = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_payments(:appointment_id, :cursor); END;", ['appointment_id' => $appt->id], \App\Models\Payment::class);
+            $appt->setRelation('payments', $payments);
+        }
+
+        $appointments = new \Illuminate\Pagination\LengthAwarePaginator($appointmentsCollection, $total, $perPage, $page, ['path' => $request->url()]);
 
         return view('patient.appointments', [
             'profile' => $profile,
-            'appointments' => Appointment::query()
-                ->with(['doctor.department', 'payments'])
-                ->where('user_id', $user->id)
-                ->latest('scheduled_for')
-                ->paginate(15),
+            'appointments' => $appointments,
         ]);
     }
 
-    public function show(Appointment $appointment): View
+    public function show($id): View
     {
+        $appointment = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_by_id(:appointment_id, :cursor); END;", ['appointment_id' => $id], \App\Models\Appointment::class)->firstOrFail();
+        
         $this->authorize('view', $appointment);
 
-        return view('patient.appointment-show', [
-            'appointment' => $appointment->load([
-                'doctor.department',
-                'payments',
-                'prescriptionItems.medicine',
-                'chatMessages' => fn ($query) => $query->with('user')->orderBy('created_at'),
-            ]),
-        ]);
+        $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_by_id(:id, :cursor); END;", ['id' => $appointment->doctor_id], \App\Models\Doctor::class)->first();
+        if ($doctor) {
+            $department = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_department_by_id(:department_id, :cursor); END;", ['department_id' => $doctor->department_id], \App\Models\Department::class)->first();
+            $doctor->setRelation('department', $department);
+        }
+        $appointment->setRelation('doctor', $doctor);
+        
+        $payments = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_payments(:appointment_id, :cursor); END;", ['appointment_id' => $appointment->id], \App\Models\Payment::class);
+        $appointment->setRelation('payments', $payments);
+        
+        $prescriptionItems = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appt_prescription_items(:appointment_id, :cursor); END;", ['appointment_id' => $appointment->id], \App\Models\PrescriptionItem::class);
+        foreach ($prescriptionItems as $item) {
+            $medicine = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_medicine_by_id(:id, :cursor); END;", ['id' => $item->medicine_id], \App\Models\Medicine::class)->first();
+            $item->setRelation('medicine', $medicine);
+        }
+        $appointment->setRelation('prescriptionItems', $prescriptionItems);
+        
+        $chatMessages = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_chat_messages(:appointment_id, :cursor); END;", ['appointment_id' => $appointment->id], \App\Models\ChatMessage::class);
+        foreach ($chatMessages as $msg) {
+            $msgUser = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $msg->user_id], \App\Models\User::class)->first();
+            $msg->setRelation('user', $msgUser);
+        }
+        $appointment->setRelation('chatMessages', $chatMessages);
+
+        return view('patient.appointment-show', compact('appointment'));
     }
 
-    public function update(Request $request, Appointment $appointment): RedirectResponse
+    public function update(Request $request, $id): RedirectResponse
     {
+        $appointment = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_by_id(:appointment_id, :cursor); END;", ['appointment_id' => $id], \App\Models\Appointment::class)->firstOrFail();
+        
         $this->authorize('update', $appointment);
 
         $validated = $request->validate([
@@ -57,28 +101,31 @@ class PatientDashboardController extends Controller
                 ]);
             }
 
-            $appointment->update(['status' => 'cancelled']);
+            \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_appointments.update_status(:appointment_id, :status); END;", ['appointment_id' => $appointment->id, 'status' => 'cancelled']);
 
             return back()->with('status', 'Appointment cancelled successfully.');
         }
 
         $newSlot = Carbon::parse($validated['scheduled_for']);
-        $doctor = $appointment->doctor;
-
-        if (Appointment::query()
-            ->where('doctor_id', $doctor->id)
-            ->where('id', '!=', $appointment->id)
-            ->where('scheduled_for', $newSlot)
-            ->whereIn('status', ['pending', 'confirmed'])
-            ->exists()) {
+        
+        $params = [
+            'doctor_id' => $appointment->doctor_id,
+            'scheduled_for' => $newSlot->format('Y-m-d H:i:s'),
+            'exclude_id' => $appointment->id,
+            'count' => null
+        ];
+        
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_reads.check_slot_availability(:doctor_id, TO_TIMESTAMP(:scheduled_for, 'YYYY-MM-DD HH24:MI:SS'), :exclude_id, :count); END;", $params);
+        
+        if ($params['count'] > 0) {
             return back()->withErrors([
                 'scheduled_for' => 'The requested slot is already booked.',
             ]);
         }
 
-        $appointment->update([
-            'scheduled_for' => $newSlot,
-            'status' => 'pending',
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.reschedule_appointment(:id, TO_TIMESTAMP(:scheduled_for, 'YYYY-MM-DD HH24:MI:SS')); END;", [
+            'id' => $appointment->id,
+            'scheduled_for' => $newSlot->format('Y-m-d H:i:s')
         ]);
 
         return back()->with('status', 'Appointment rescheduled successfully.');
@@ -98,18 +145,18 @@ class PatientDashboardController extends Controller
             'medical_notes' => ['nullable', 'string', 'max:4000'],
         ]);
 
-        $request->user()->patientProfile()->updateOrCreate(
-            ['user_id' => $request->user()->id],
-            [
-                'date_of_birth' => $validated['date_of_birth'] ?? null,
-                'gender' => $validated['gender'] ?? null,
-                'height_cm' => $validated['height_cm'] ?? null,
-                'weight_kg' => $validated['weight_kg'] ?? null,
-                'known_conditions' => $validated['known_conditions'] ?? null,
-                'allergies' => $validated['allergies'] ?? null,
-                'medical_notes' => $validated['medical_notes'] ?? null,
-            ]
-        );
+        $params = [
+            'user_id' => $request->user()->id,
+            'date_of_birth' => $validated['date_of_birth'] ?? null,
+            'gender' => $validated['gender'] ?? null,
+            'height_cm' => $validated['height_cm'] ?? null,
+            'weight_kg' => $validated['weight_kg'] ?? null,
+            'known_conditions' => $validated['known_conditions'] ?? null,
+            'allergies' => $validated['allergies'] ?? null,
+            'medical_notes' => $validated['medical_notes'] ?? null
+        ];
+
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_patient_profile(:user_id, TO_DATE(:date_of_birth, 'YYYY-MM-DD'), :gender, :height_cm, :weight_kg, :known_conditions, :allergies, :medical_notes); END;", $params);
 
         return back()->with('status', 'Patient profile updated successfully.');
     }

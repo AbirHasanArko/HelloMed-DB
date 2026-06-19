@@ -9,9 +9,23 @@ use Illuminate\Support\Facades\DB;
 
 class InventoryController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $items = InventoryItem::orderBy('name')->paginate(20);
+        $page = $request->get('page', 1);
+        $perPage = 20;
+        $offset = ($page - 1) * $perPage;
+
+        $params = [
+            'limit' => $perPage,
+            'offset' => $offset,
+            'total' => null
+        ];
+
+        $itemsCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_paginated_inventory_items(:limit, :offset, :total, :cursor); END;", $params, \App\Models\InventoryItem::class);
+        $total = $params['total'];
+
+        $items = new \Illuminate\Pagination\LengthAwarePaginator($itemsCollection, $total, $perPage, $page, ['path' => $request->url()]);
+
         return view('staff.inventory.index', compact('items'));
     }
 
@@ -52,13 +66,16 @@ class InventoryController extends Controller
         return redirect()->route('staff.inventory.index')->with('success', 'Inventory item added successfully.');
     }
 
-    public function edit(InventoryItem $item)
+    public function edit($id)
     {
+        $item = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_inventory_item_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\InventoryItem::class)->firstOrFail();
         return view('staff.inventory.edit', compact('item'));
     }
 
-    public function update(Request $request, InventoryItem $item)
+    public function update(Request $request, $id)
     {
+        $item = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_inventory_item_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\InventoryItem::class)->firstOrFail();
+
         $validated = $request->validate([
             'quantity_change' => 'required|integer',
         ]);

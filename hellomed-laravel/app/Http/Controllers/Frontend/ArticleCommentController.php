@@ -10,8 +10,9 @@ use Illuminate\Http\Request;
 
 class ArticleCommentController extends Controller
 {
-    public function store(Request $request, Article $article): RedirectResponse
+    public function store(Request $request, $id): RedirectResponse
     {
+        $article = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_article_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\Article::class)->firstOrFail();
         abort_unless($article->is_published, 404);
         abort_unless($request->user()?->role === 'patient', 403);
 
@@ -20,15 +21,21 @@ class ArticleCommentController extends Controller
             'comment' => ['required', 'string', 'max:3000'],
         ]);
 
-        $comment = $article->comments()->create([
+        $params = [
+            'article_id' => $article->id,
             'user_id' => $request->user()->id,
             'rating' => $validated['rating'] ?? null,
             'comment' => $validated['comment'],
-        ]);
+            'id' => null
+        ];
+        
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.create_article_comment(:article_id, :user_id, :rating, :comment, :id); END;", $params);
+
+        $commentId = $params['id'];
 
         AuditLogger::log('article.comment_submitted', $article, [], [
-            'comment_id' => $comment->id,
-            'rating' => $comment->rating,
+            'comment_id' => $commentId,
+            'rating' => $validated['rating'] ?? null,
         ]);
 
         return back()->with('status', 'Comment posted successfully.');

@@ -12,9 +12,8 @@ use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $request = request();
         $doctor = $request->user()->doctorProfile;
         abort_unless($doctor, 403, 'No doctor profile is linked to this account.');
 
@@ -52,7 +51,14 @@ class DashboardController extends Controller
         }
 
         $hydrated = Appointment::hydrate($results);
-        $hydrated->load('user.patientProfile');
+        foreach ($hydrated as $appt) {
+            $user = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $appt->user_id], \App\Models\User::class)->first();
+            if ($user) {
+                $patientProfile = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_patient_profile(:user_id, :cursor); END;", ['user_id' => $user->id], \App\Models\PatientProfile::class)->first();
+                $user->setRelation('patientProfile', $patientProfile);
+            }
+            $appt->setRelation('user', $user);
+        }
 
         $appointments = new \Illuminate\Pagination\LengthAwarePaginator(
             $hydrated,
@@ -62,13 +68,14 @@ class DashboardController extends Controller
             ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => $request->query()]
         );
 
-        $calendarSummary = Appointment::query()
-            ->selectRaw("TO_CHAR(scheduled_for, 'YYYY-MM-DD') as appointment_date, COUNT(*) as total")
-            ->where('doctor_id', $doctor->id)
-            ->whereBetween('scheduled_for', [now()->startOfDay(), now()->copy()->addDays(30)->endOfDay()])
-            ->groupByRaw("TO_CHAR(scheduled_for, 'YYYY-MM-DD')")
-            ->orderByRaw("TO_CHAR(scheduled_for, 'YYYY-MM-DD')")
-            ->get();
+        $calendarSummaryRaw = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_calendar_summary(:doctor_id, :cursor); END;", ['doctor_id' => $doctor->id]);
+        
+        $calendarSummary = $calendarSummaryRaw->map(function($row) {
+            $obj = new \stdClass();
+            $obj->appointment_date = $row->appointment_date;
+            $obj->total = $row->total;
+            return $obj;
+        });
 
         return view('doctor.dashboard', [
             'doctor' => $doctor,
@@ -95,22 +102,31 @@ class DashboardController extends Controller
             'offline_available_to' => ['nullable', 'date_format:H:i', 'after:offline_available_from'],
             'slot_minutes' => ['required', 'integer', 'in:15,20,30,45,60'],
         ]);
+        
+        $onlineDays = implode(',', $request->input('online_available_days', []));
+        $offlineDays = implode(',', $request->input('offline_available_days', []));
+        
+        // Legacy compatibility logic
+        $legacyDaysArray = $request->input('offline_available_days', $request->input('online_available_days', []));
+        $legacyDays = implode(',', $legacyDaysArray);
+        $legacyFrom = $validated['offline_available_from'] ?? ($validated['online_available_from'] ?? null);
+        $legacyTo = $validated['offline_available_to'] ?? ($validated['online_available_to'] ?? null);
 
-        $doctor->update([
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_doctor_schedule(:doctor_id, :clinic_address, :slot_minutes, :online_available, :offline_available, :online_available_days, :online_available_from, :online_available_to, :offline_available_days, :offline_available_from, :offline_available_to, :available_days, :available_from, :available_to); END;", [
+            'doctor_id' => $doctor->id,
             'clinic_address' => $validated['clinic_address'] ?? null,
             'slot_minutes' => $validated['slot_minutes'],
-            'online_available' => $request->boolean('online_available'),
-            'offline_available' => $request->boolean('offline_available'),
-            'online_available_days' => $request->input('online_available_days', []),
+            'online_available' => $request->boolean('online_available') ? 1 : 0,
+            'offline_available' => $request->boolean('offline_available') ? 1 : 0,
+            'online_available_days' => $onlineDays ?: null,
             'online_available_from' => $validated['online_available_from'] ?? null,
             'online_available_to' => $validated['online_available_to'] ?? null,
-            'offline_available_days' => $request->input('offline_available_days', []),
+            'offline_available_days' => $offlineDays ?: null,
             'offline_available_from' => $validated['offline_available_from'] ?? null,
             'offline_available_to' => $validated['offline_available_to'] ?? null,
-            // Keep legacy unified fields in sync for backward compatibility.
-            'available_days' => $request->input('offline_available_days', $request->input('online_available_days', [])),
-            'available_from' => $validated['offline_available_from'] ?? ($validated['online_available_from'] ?? null),
-            'available_to' => $validated['offline_available_to'] ?? ($validated['online_available_to'] ?? null),
+            'available_days' => $legacyDays ?: null,
+            'available_from' => $legacyFrom,
+            'available_to' => $legacyTo
         ]);
 
         return back()->with('status', 'Schedule updated successfully.');
@@ -123,11 +139,12 @@ class DashboardController extends Controller
             'new_password' => ['required', 'string', 'min:8', 'max:255', 'confirmed'],
         ]);
 
-        $request->user()->update([
-            'password' => Hash::make($validated['new_password']),
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_user_password(:id, :password); END;", [
+            'id' => $request->user()->id,
+            'password' => Hash::make($validated['new_password'])
         ]);
 
-        AuditLogger::log('auth.password_changed', $request->user(), [], [
+        AuditLogger::log('auth.password_changed', clone $request->user(), [], [
             'role' => $request->user()->role,
             'changed_via' => 'doctor_dashboard',
         ]);

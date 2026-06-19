@@ -94,8 +94,8 @@ All core logic, tables, sequences, triggers, and data manipulation rules are def
 | **Tables** | 24 relational tables |
 | **Sequences** | 24 auto-increment sequences |
 | **Triggers** | 24 BEFORE INSERT triggers |
-| **PL/SQL Packages** | 8 (Users, Appointments, Pharmacy, Ambulance, Facilities, Inventory, Search, Filters) |
-| **Stored Procedures** | 23 across all packages |
+| **PL/SQL Packages** | 10 (Users, Appointments, Pharmacy, Ambulance, Facilities, Inventory, Search, Filters, CRUD Writes, CRUD Reads) |
+| **Stored Procedures** | ~118 across all packages |
 | **Indexes** | 7 performance-optimized indexes |
 | **Frontend** | Laravel 11 via OCI8 bridge |
 
@@ -105,14 +105,15 @@ To give an idea of the depth of the PL/SQL implementation, here are some raw cod
 
 | PL/SQL Construct | Count | Notes |
 |---|---|---|
-| **Packages** | 8 | Modularized business logic wrappers |
-| **Procedures** | 23 | Distinct callable stored procedures |
+| **Packages** | 10 | Modularized business logic wrappers |
+| **Procedures** | ~118 | Distinct callable stored procedures |
+| **Functions** | 0 | Business logic encapsulated within procedures |
 | **Triggers** | 24 | `BEFORE INSERT` auto-increment & timestamp triggers |
 | **IF / ELSIF / ELSE** | ~125 | Conditional branching for business rules |
-| **SYS_REFCURSOR** | 6 | Procedures returning dynamic result sets to Laravel |
+| **SYS_REFCURSOR** | ~58 | Procedures returning dynamic result sets to Laravel |
 | **COMMIT / ROLLBACK** | 19 | Explicit transaction control blocks |
 | **EXCEPTION** | 1 | Structured error handling block |
-| **Loops** | 0 | Highly optimized set-based SQL; no slow `WHILE/FOR` cursor loops used! |
+| **Loops** | 4 | Highly optimized set-based SQL; minimal `WHILE/FOR` cursor loops used! |
 
 ---
 
@@ -576,6 +577,37 @@ Handles advanced dynamic filtering and dashboard aggregations, completely offloa
 | `filter_doctors` | `p_department_slug`, `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Filters public doctor directory by department |
 | `filter_articles` | `p_category_slug`, `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Filters health articles by category |
 | `get_admin_dashboard_metrics` | `p_since_hours`, `OUT p_failed_logins`, `OUT p_failed_payments`, `OUT p_freq_status_changes` | Returns aggregations directly from the audit log |
+
+### 9. `pkg_crud_writes` ([`13_pkg_crud_writes.sql`](oracle_plsql/13_pkg_crud_writes.sql))
+
+A centralized package for performing all DML operations (INSERT, UPDATE, DELETE) across various entities.
+*Note: Due to Oracle identifier length limits, some extremely long procedure names were intentionally shortened.*
+
+| Procedure | Parameters | Description |
+|---|---|---|
+| `create_department` | `p_name`, `p_slug`, `p_description`, `p_service_scope`, `p_is_active`, `p_is_featured`, `p_featured_order`, `p_image_path`, `OUT p_id` | Registers a new hospital department |
+| `update_department` | `p_id`, `p_name`, `p_slug`, `p_description`, ... | Updates an existing department |
+| `create_doctor_user` | `p_name`, `p_email`, `p_password`, `OUT p_user_id` | Registers a doctor user specifically |
+| `create_doctor_profile` | `p_user_id`, `p_department_id`, ... | Creates a detailed doctor profile linked to the user account |
+| `create_facility_room` | `p_room_number`, `p_room_type`, `p_capacity`, `p_is_active`, `OUT p_id` | Registers a new hospital facility room |
+| `create_medicine` | `p_name`, `p_description`, `p_medicine_group`, ... | Adds a new medicine to the e-pharmacy catalog |
+| `create_article` | `p_category_id`, `p_user_id`, `p_title`, `p_slug`, ... | Submits a new health article to the CMS |
+| `update_payment` | `p_id`, `p_status`, `p_paid_at`, `p_reference`, `p_notes` | Updates payment fulfillment details |
+| *(And many more...)* | *Various* | Handles inserts and updates for settings, profiles, comments, Q&As, etc. |
+
+### 10. `pkg_crud_reads` ([`14_pkg_crud_reads.sql`](oracle_plsql/14_pkg_crud_reads.sql))
+
+A centralized package for performing read-only queries and data retrieval. It relies heavily on `SYS_REFCURSOR` and nested `ROWNUM` limit/offset constructs to safely deliver precise data pages to Laravel.
+
+| Procedure | Parameters | Description |
+|---|---|---|
+| `get_paginated_departments` | `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Fetches paginated departments with total counts |
+| `get_doctor_by_id` | `p_doctor_id`, `OUT p_cursor` | Retrieves a single doctor profile and their assigned department details |
+| `get_paginated_patient_appts` | `p_user_id`, `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Retrieves paginated historical and upcoming appointments for a given patient |
+| `get_appt_prescription_items` | `p_appointment_id`, `OUT p_cursor` | Retrieves line items for an appointment's prescription |
+| `get_future_facility_bookings` | `p_room_id`, `OUT p_cursor` | Gets upcoming bookings to avoid overlaps and schedule visually |
+| `get_paginated_inventory_items` | `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Retrieves hospital inventory items with counts |
+| *(And many more...)* | *Various* | Comprehensive lookup logic for all major features in the application |
 
 ### Package Design Philosophy
 

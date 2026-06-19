@@ -12,15 +12,17 @@ use Illuminate\Support\Str;
 
 class MedicinePaymentController extends Controller
 {
-    public function start(MedicineOrder $order, string $provider)
+    public function start($id, string $provider)
     {
+        $order = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_medicine_order_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\MedicineOrder::class)->firstOrFail();
+
         abort_unless($order->user_id === request()->user()->id, 403);
         abort_unless(in_array($provider, ['bkash', 'nagad'], true), 404);
 
         if (blank($order->payment_callback_token)) {
-            $order->update([
-                'payment_callback_token' => Str::random(48),
-            ]);
+            $token = Str::random(48);
+            \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_order_payment_token(:id, :token); END;", ['id' => $order->id, 'token' => $token]);
+            $order->payment_callback_token = $token;
         }
 
         return view('shop.payments.mock-gateway', [
@@ -29,8 +31,10 @@ class MedicinePaymentController extends Controller
         ]);
     }
 
-    public function callback(Request $request, MedicineOrder $order, string $provider, string $status): RedirectResponse
+    public function callback(Request $request, $id, string $provider, string $status): RedirectResponse
     {
+        $order = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_medicine_order_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\MedicineOrder::class)->firstOrFail();
+
         abort_unless($order->user_id === request()->user()->id, 403);
         abort_unless(in_array($provider, ['bkash', 'nagad'], true), 404);
         abort_unless(in_array($status, ['success', 'failed'], true), 404);
@@ -42,34 +46,27 @@ class MedicinePaymentController extends Controller
         ];
 
         if ($status === 'success') {
-            DB::transaction(function () use ($order): void {
-                $lockedOrder = MedicineOrder::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
+            if (blank($order->inventory_committed_at)) {
+                \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_inventory.commit_inventory_for_order(:order_id); END;", ['order_id' => $order->id]);
+            }
 
-                if (blank($lockedOrder->inventory_committed_at)) {
-                    $items = $lockedOrder->items()->with('medicine')->get();
-                    foreach ($items as $item) {
-                        $medicine = $item->medicine;
-                        if (! $medicine) {
-                            continue;
-                        }
+            $newStatus = $order->status === 'pending' ? 'processing' : $order->status;
+            $paymentReference = $order->payment_reference ?? strtoupper($order->payment_method).'-'.now()->format('YmdHis').'-'.$order->id;
 
-                        if ($medicine->stock_quantity < $item->quantity) {
-                            abort(422, "Insufficient stock for {$medicine->name} during payment confirmation.");
-                        }
+            \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_medicine_order_status(:id, :status, :payment_status); END;", [
+                'id' => $order->id,
+                'status' => $newStatus,
+                'payment_status' => 'paid'
+            ]);
 
-                        $medicine->decrement('stock_quantity', $item->quantity);
-                    }
-                }
+            \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_order_payment(:id, :method, :status, :ref); END;", [
+                'id' => $order->id,
+                'method' => $order->payment_method,
+                'status' => 'paid',
+                'ref' => $paymentReference
+            ]);
 
-                $lockedOrder->update([
-                    'payment_status' => 'paid',
-                    'status' => $lockedOrder->status === 'pending' ? 'processing' : $lockedOrder->status,
-                    'inventory_committed_at' => $lockedOrder->inventory_committed_at ?? now(),
-                    'payment_reference' => $lockedOrder->payment_reference ?? strtoupper($lockedOrder->payment_method).'-'.now()->format('YmdHis').'-'.$lockedOrder->id,
-                ]);
-            });
-
-            $order->refresh();
+            $order = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_medicine_order_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\MedicineOrder::class)->firstOrFail();
 
             AuditLogger::log('medicine_order.payment_callback', $order, $old, [
                 'payment_status' => $order->payment_status,
@@ -79,12 +76,16 @@ class MedicinePaymentController extends Controller
                 'callback_status' => 'success',
             ]);
 
-            return redirect()->route('patient.medicine-orders.show', $order)->with('status', strtoupper($provider).' payment marked as paid.');
+            return redirect()->route('patient.medicine-orders.show', $order->id)->with('status', strtoupper($provider).' payment marked as paid.');
         }
 
-        $order->update([
-            'payment_status' => 'failed',
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_medicine_order_status(:id, :status, :payment_status); END;", [
+            'id' => $order->id,
+            'status' => $order->status,
+            'payment_status' => 'failed'
         ]);
+        
+        $order->payment_status = 'failed';
 
         AuditLogger::log('medicine_order.payment_callback', $order, $old, [
             'payment_status' => $order->payment_status,
@@ -94,6 +95,6 @@ class MedicinePaymentController extends Controller
             'callback_status' => 'failed',
         ]);
 
-        return redirect()->route('patient.medicine-orders.show', $order)->with('status', strtoupper($provider).' payment marked as failed.');
+        return redirect()->route('patient.medicine-orders.show', $order->id)->with('status', strtoupper($provider).' payment marked as failed.');
     }
 }

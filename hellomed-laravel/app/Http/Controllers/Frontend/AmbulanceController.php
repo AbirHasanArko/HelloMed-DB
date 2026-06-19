@@ -23,27 +23,23 @@ class AmbulanceController extends Controller
             'longitude' => 'nullable|numeric',
         ]);
 
-        $pdo = \Illuminate\Support\Facades\DB::getPdo();
-        $stmt = $pdo->prepare('BEGIN pkg_ambulance.request_ambulance(:user_id, :patient_name, :patient_phone, :address, :request_id); END;');
+        $params = [
+            'user_id' => auth()->id(),
+            'patient_name' => $request->patient_name,
+            'patient_phone' => $request->patient_phone,
+            'address' => $request->address,
+            'request_id' => null
+        ];
         
-        $userId = auth()->id();
-        $patientName = $request->patient_name;
-        $patientPhone = $request->patient_phone;
-        $address = $request->address;
-        $requestId = null;
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_ambulance.request_ambulance(:user_id, :patient_name, :patient_phone, :address, :request_id); END;", $params);
         
-        $stmt->bindParam(':user_id', $userId);
-        $stmt->bindParam(':patient_name', $patientName);
-        $stmt->bindParam(':patient_phone', $patientPhone);
-        $stmt->bindParam(':address', $address);
-        $stmt->bindParam(':request_id', $requestId, \PDO::PARAM_INT | \PDO::PARAM_INPUT_OUTPUT, 32);
-        
-        $stmt->execute();
+        $requestId = $params['request_id'];
         
         if ($request->latitude && $request->longitude) {
-            AmbulanceRequest::query()->where('id', $requestId)->update([
+            \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_ambulance_location(:id, :latitude, :longitude); END;", [
+                'id' => $requestId,
                 'latitude' => $request->latitude,
-                'longitude' => $request->longitude,
+                'longitude' => $request->longitude
             ]);
         }
 

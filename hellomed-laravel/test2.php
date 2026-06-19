@@ -1,8 +1,10 @@
 <?php
 
 $files = [
-    'd:\Documents\HelloMed-DB\oracle_plsql\09_pkg_search.sql',
-    'd:\Documents\HelloMed-DB\oracle_plsql\10_pkg_filters.sql'
+    'd:\Documents\HelloMed-DB\oracle_plsql\11_pkg_search.sql',
+    'd:\Documents\HelloMed-DB\oracle_plsql\12_pkg_filters.sql',
+    'd:\Documents\HelloMed-DB\oracle_plsql\13_pkg_crud_writes.sql',
+    'd:\Documents\HelloMed-DB\oracle_plsql\14_pkg_crud_reads.sql'
 ];
 
 foreach ($files as $file) {

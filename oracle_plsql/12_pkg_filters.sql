@@ -29,6 +29,20 @@ CREATE OR REPLACE PACKAGE pkg_filters AS
         p_freq_status_changes OUT NUMBER
     );
 
+    PROCEDURE get_financial_report(
+        p_start_date IN TIMESTAMP,
+        p_end_date IN TIMESTAMP,
+        p_total_revenue OUT NUMBER,
+        p_medicine_sales OUT NUMBER
+    );
+
+    PROCEDURE get_doctor_report(
+        p_doctor_id IN NUMBER,
+        p_total OUT NUMBER,
+        p_completed OUT NUMBER,
+        p_cancelled OUT NUMBER
+    );
+
     PROCEDURE filter_doctors(
         p_department_slug IN VARCHAR2,
         p_limit IN NUMBER,
@@ -146,6 +160,46 @@ CREATE OR REPLACE PACKAGE BODY pkg_filters AS
             HAVING COUNT(*) >= 3
         );
     END get_admin_dashboard_metrics;
+
+    PROCEDURE get_financial_report(
+        p_start_date IN TIMESTAMP,
+        p_end_date IN TIMESTAMP,
+        p_total_revenue OUT NUMBER,
+        p_medicine_sales OUT NUMBER
+    ) IS
+    BEGIN
+        SELECT NVL(SUM(amount), 0) INTO p_total_revenue
+        FROM payments
+        WHERE status = 'paid'
+          AND paid_at BETWEEN NVL(p_start_date, TO_TIMESTAMP('2000-01-01', 'YYYY-MM-DD')) 
+                          AND NVL(p_end_date, SYSTIMESTAMP);
+
+        SELECT NVL(SUM(total_amount), 0) INTO p_medicine_sales
+        FROM medicine_orders
+        WHERE status = 'completed'
+          AND created_at BETWEEN NVL(p_start_date, TO_TIMESTAMP('2000-01-01', 'YYYY-MM-DD')) 
+                             AND NVL(p_end_date, SYSTIMESTAMP);
+    END get_financial_report;
+
+    PROCEDURE get_doctor_report(
+        p_doctor_id IN NUMBER,
+        p_total OUT NUMBER,
+        p_completed OUT NUMBER,
+        p_cancelled OUT NUMBER
+    ) IS
+    BEGIN
+        SELECT COUNT(*) INTO p_total
+        FROM appointments
+        WHERE doctor_id = p_doctor_id;
+
+        SELECT COUNT(*) INTO p_completed
+        FROM appointments
+        WHERE doctor_id = p_doctor_id AND status = 'completed';
+
+        SELECT COUNT(*) INTO p_cancelled
+        FROM appointments
+        WHERE doctor_id = p_doctor_id AND status = 'cancelled';
+    END get_doctor_report;
 
     PROCEDURE filter_doctors(
         p_department_slug IN VARCHAR2,

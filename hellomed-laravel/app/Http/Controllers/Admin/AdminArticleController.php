@@ -11,12 +11,40 @@ use Illuminate\Support\Facades\Storage;
 
 class AdminArticleController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $this->authorize('viewAny', Article::class);
 
+        $page = $request->get('page', 1);
+        $perPage = 15;
+        $offset = ($page - 1) * $perPage;
+
+        $params = [
+            'limit' => $perPage,
+            'offset' => $offset,
+            'total' => null
+        ];
+
+        $articlesCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_paginated_admin_articles(:limit, :offset, :total, :cursor); END;", $params, \App\Models\Article::class);
+        $total = $params['total'];
+
+        foreach ($articlesCollection as $article) {
+            $category = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_active_article_categories(:cursor); END;", [], \App\Models\ArticleCategory::class)->where('id', $article->category_id)->first();
+            $article->setRelation('category', $category);
+
+            $author = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $article->user_id], \App\Models\User::class)->first();
+            $article->setRelation('author', $author);
+
+            if ($article->reviewed_by_user_id) {
+                $reviewer = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $article->reviewed_by_user_id], \App\Models\User::class)->first();
+                $article->setRelation('reviewer', $reviewer);
+            }
+        }
+
+        $articles = new \Illuminate\Pagination\LengthAwarePaginator($articlesCollection, $total, $perPage, $page, ['path' => $request->url()]);
+
         return view('admin.articles.index', [
-            'articles' => Article::query()->with(['category', 'author', 'reviewer'])->latest()->paginate(15),
+            'articles' => $articles,
         ]);
     }
 
@@ -24,8 +52,10 @@ class AdminArticleController extends Controller
     {
         $this->authorize('create', Article::class);
 
+        $categories = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_active_article_categories(:cursor); END;", [], \App\Models\ArticleCategory::class);
+
         return view('admin.articles.create', [
-            'categories' => ArticleCategory::query()->where('is_active', true)->orderBy('name')->get(),
+            'categories' => $categories,
         ]);
     }
 
@@ -39,35 +69,48 @@ class AdminArticleController extends Controller
             $coverImagePath = $request->file('cover_image')->store('article-covers', 'public');
         }
 
-        $article = Article::create([
-            ...collect($validated)->except('cover_image')->all(),
+        $params = [
+            'category_id' => $validated['category_id'],
             'user_id' => $request->user()->id,
+            'title' => $validated['title'],
+            'slug' => \Illuminate\Support\Str::slug($validated['title']),
+            'excerpt' => $validated['excerpt'],
+            'content' => $validated['content'],
             'cover_image_path' => $coverImagePath,
-            'is_featured' => $request->boolean('is_featured'),
+            'is_featured' => $request->boolean('is_featured') ? 1 : 0,
             'featured_order' => $request->integer('featured_order', 0),
-            'is_published' => $isPublished,
+            'is_published' => $isPublished ? 1 : 0,
             'publication_status' => $isPublished ? 'published' : 'draft',
             'reviewed_by_user_id' => $isPublished ? $request->user()->id : null,
-            'reviewed_at' => $isPublished ? now() : null,
-        ]);
+            'reviewed_at' => $isPublished ? now()->format('Y-m-d H:i:s') : null,
+            'id' => null
+        ];
 
-        AuditLogger::log('article.created', $article, [], $article->only(['title', 'publication_status', 'is_published', 'is_featured']));
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.create_article(:category_id, :user_id, :title, :slug, :excerpt, :content, :cover_image_path, :is_featured, :featured_order, :is_published, :publication_status, :reviewed_by_user_id, TO_DATE(:reviewed_at, 'YYYY-MM-DD HH24:MI:SS'), :id); END;", $params);
+
+        $article = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_article_by_id(:id, :cursor); END;", ['id' => $params['id']], \App\Models\Article::class)->firstOrFail();
+
+        AuditLogger::log('article.created', clone $article, [], $article->only(['title', 'publication_status', 'is_published', 'is_featured']));
 
         return redirect()->route('admin.articles.index')->with('status', 'Article created.');
     }
 
-    public function edit(Article $article)
+    public function edit($id)
     {
+        $article = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_article_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\Article::class)->firstOrFail();
         $this->authorize('update', $article);
+
+        $categories = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_active_article_categories(:cursor); END;", [], \App\Models\ArticleCategory::class);
 
         return view('admin.articles.edit', [
             'article' => $article,
-            'categories' => ArticleCategory::query()->where('is_active', true)->orderBy('name')->get(),
+            'categories' => $categories,
         ]);
     }
 
-    public function update(StoreArticleRequest $request, Article $article)
+    public function update(StoreArticleRequest $request, $id)
     {
+        $article = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_article_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\Article::class)->firstOrFail();
         $this->authorize('update', $article);
 
         $old = $article->only(['title', 'publication_status', 'is_published', 'is_featured']);
@@ -83,24 +126,33 @@ class AdminArticleController extends Controller
             $coverImagePath = $request->file('cover_image')->store('article-covers', 'public');
         }
 
-        $article->update([
-            ...collect($validated)->except('cover_image')->all(),
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_article(:id, :category_id, :title, :slug, :excerpt, :content, :cover_image_path, :is_featured, :featured_order, :is_published, :publication_status, :reviewed_by_user_id, TO_DATE(:reviewed_at, 'YYYY-MM-DD HH24:MI:SS'), TO_DATE(:published_at, 'YYYY-MM-DD HH24:MI:SS')); END;", [
+            'id' => $article->id,
+            'category_id' => $validated['category_id'],
+            'title' => $validated['title'],
+            'slug' => \Illuminate\Support\Str::slug($validated['title']),
+            'excerpt' => $validated['excerpt'],
+            'content' => $validated['content'],
             'cover_image_path' => $coverImagePath,
-            'is_featured' => $request->boolean('is_featured'),
+            'is_featured' => $request->boolean('is_featured') ? 1 : 0,
             'featured_order' => $request->integer('featured_order', 0),
-            'is_published' => $isPublished,
+            'is_published' => $isPublished ? 1 : 0,
             'publication_status' => $isPublished ? 'published' : 'draft',
             'reviewed_by_user_id' => $request->user()->id,
-            'reviewed_at' => now(),
+            'reviewed_at' => now()->format('Y-m-d H:i:s'),
+            'published_at' => null
         ]);
 
-        AuditLogger::log('article.updated', $article, $old, $article->only(['title', 'publication_status', 'is_published', 'is_featured']));
+        $article = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_article_by_id(:id, :cursor); END;", ['id' => $article->id], \App\Models\Article::class)->firstOrFail();
+
+        AuditLogger::log('article.updated', clone $article, $old, $article->only(['title', 'publication_status', 'is_published', 'is_featured']));
 
         return redirect()->route('admin.articles.index')->with('status', 'Article updated.');
     }
 
-    public function review(\Illuminate\Http\Request $request, Article $article)
+    public function review(\Illuminate\Http\Request $request, $id)
     {
+        $article = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_article_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\Article::class)->firstOrFail();
         $this->authorize('update', $article);
 
         $old = [
@@ -113,15 +165,26 @@ class AdminArticleController extends Controller
         ]);
 
         if ($validated['decision'] === 'approve') {
-            $article->update([
-                'is_published' => true,
+            \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_article(:id, :category_id, :title, :slug, :excerpt, :content, :cover_image_path, :is_featured, :featured_order, :is_published, :publication_status, :reviewed_by_user_id, TO_DATE(:reviewed_at, 'YYYY-MM-DD HH24:MI:SS'), TO_DATE(:published_at, 'YYYY-MM-DD HH24:MI:SS')); END;", [
+                'id' => $article->id,
+                'category_id' => $article->category_id,
+                'title' => $article->title,
+                'slug' => $article->slug,
+                'excerpt' => $article->excerpt,
+                'content' => $article->content,
+                'cover_image_path' => $article->cover_image_path,
+                'is_featured' => $article->is_featured ? 1 : 0,
+                'featured_order' => $article->featured_order,
+                'is_published' => 1,
                 'publication_status' => 'published',
                 'reviewed_by_user_id' => $request->user()->id,
-                'reviewed_at' => now(),
-                'published_at' => $article->published_at ?? now(),
+                'reviewed_at' => now()->format('Y-m-d H:i:s'),
+                'published_at' => optional($article->published_at)->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s')
             ]);
+            
+            $article = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_article_by_id(:id, :cursor); END;", ['id' => $article->id], \App\Models\Article::class)->firstOrFail();
 
-            AuditLogger::log('article.reviewed', $article, [
+            AuditLogger::log('article.reviewed', clone $article, [
                 ...$old,
             ], [
                 'publication_status' => 'published',
@@ -133,15 +196,26 @@ class AdminArticleController extends Controller
             return back()->with('status', 'Article approved and published.');
         }
 
-        $article->update([
-            'is_published' => false,
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_article(:id, :category_id, :title, :slug, :excerpt, :content, :cover_image_path, :is_featured, :featured_order, :is_published, :publication_status, :reviewed_by_user_id, TO_DATE(:reviewed_at, 'YYYY-MM-DD HH24:MI:SS'), TO_DATE(:published_at, 'YYYY-MM-DD HH24:MI:SS')); END;", [
+            'id' => $article->id,
+            'category_id' => $article->category_id,
+            'title' => $article->title,
+            'slug' => $article->slug,
+            'excerpt' => $article->excerpt,
+            'content' => $article->content,
+            'cover_image_path' => $article->cover_image_path,
+            'is_featured' => $article->is_featured ? 1 : 0,
+            'featured_order' => $article->featured_order,
+            'is_published' => 0,
             'publication_status' => 'rejected',
             'reviewed_by_user_id' => $request->user()->id,
-            'reviewed_at' => now(),
-            'published_at' => null,
+            'reviewed_at' => now()->format('Y-m-d H:i:s'),
+            'published_at' => null
         ]);
+        
+        $article = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_article_by_id(:id, :cursor); END;", ['id' => $article->id], \App\Models\Article::class)->firstOrFail();
 
-        AuditLogger::log('article.reviewed', $article, [
+        AuditLogger::log('article.reviewed', clone $article, [
             ...$old,
         ], [
             'publication_status' => 'rejected',
