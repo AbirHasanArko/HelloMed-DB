@@ -95,7 +95,7 @@ All core logic, tables, sequences, triggers, and data manipulation rules are def
 | **Sequences** | 24 auto-increment sequences |
 | **Triggers** | 24 BEFORE INSERT triggers |
 | **PL/SQL Packages** | 8 (Users, Appointments, Pharmacy, Ambulance, Facilities, Inventory, Search, Filters) |
-| **Stored Procedures** | 22 across all packages |
+| **Stored Procedures** | 23 across all packages |
 | **Indexes** | 7 performance-optimized indexes |
 | **Frontend** | Laravel 11 via OCI8 bridge |
 
@@ -106,7 +106,7 @@ To give an idea of the depth of the PL/SQL implementation, here are some raw cod
 | PL/SQL Construct | Count | Notes |
 |---|---|---|
 | **Packages** | 8 | Modularized business logic wrappers |
-| **Procedures** | 22 | Distinct callable stored procedures |
+| **Procedures** | 23 | Distinct callable stored procedures |
 | **Triggers** | 24 | `BEFORE INSERT` auto-increment & timestamp triggers |
 | **IF / ELSIF / ELSE** | ~125 | Conditional branching for business rules |
 | **SYS_REFCURSOR** | 6 | Procedures returning dynamic result sets to Laravel |
@@ -516,6 +516,7 @@ Encapsulates the workflow of scheduling and managing patient-doctor consultation
 |---|---|---|
 | `book_appointment` | `p_user_id`, `p_doctor_id`, `p_department_id`, `p_service_id`, `p_patient_name`, `p_patient_email`, `p_patient_phone`, `p_service_mode`, `p_scheduled_for`, `p_reason`, `OUT p_appointment_id` | Creates a pending appointment linking patient, doctor, department, and service in a single transaction |
 | `update_status` | `p_appointment_id`, `p_status` | Transitions appointment through lifecycle: `pending` → `confirmed` → `completed` → `cancelled` |
+| `update_queue_status` | `p_appointment_id`, `p_queue_status` | Transitions appointment through queue states: `waiting` → `in_consultation` → `finished` |
 | `attach_meeting_link` | `p_appointment_id`, `p_link` | Updates an existing online appointment with a secure meeting URL |
 
 ### 3. `pkg_pharmacy` ([`05_pkg_pharmacy.sql`](oracle_plsql/05_pkg_pharmacy.sql))
@@ -778,7 +779,7 @@ sqlplus -s hellomed/password123 @run_all.sql
 | 1 | `01_schema.sql` | All 24 relational tables with constraints and indexes |
 | 2 | `02_sequences_triggers.sql` | 24 sequences + 24 BEFORE INSERT triggers for auto-PK and timestamps |
 | 3 | `03_pkg_users.sql` | PL/SQL Package for user management (3 procedures) |
-| 4 | `04_pkg_appointments.sql` | PL/SQL Package for appointment booking (3 procedures) |
+| 4 | `04_pkg_appointments.sql` | PL/SQL Package for appointment booking (4 procedures) |
 | 5 | `05_pkg_pharmacy.sql` | PL/SQL Package for inventory & ordering (3 procedures) |
 | 6 | `06_pkg_ambulance.sql` | PL/SQL Package for emergency dispatch (3 procedures) |
 | 7 | `09_pkg_facilities.sql` | PL/SQL Package for facility booking (2 procedures) |
