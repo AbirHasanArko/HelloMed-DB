@@ -24,7 +24,7 @@ class ArticlePolicy
 
     public function update(User $user, Article $article): bool
     {
-        return $user->isAdminOrStaff() || $article->user_id === $user->id;
+        return $user->isAdminOrStaff() || $article->user_id == $user->id;
     }
 
     public function delete(User $user, Article $article): bool

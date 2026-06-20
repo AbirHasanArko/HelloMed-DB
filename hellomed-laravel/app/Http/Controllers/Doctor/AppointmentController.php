@@ -17,7 +17,7 @@ class AppointmentController extends Controller
     {
         $doctor = request()->user()->doctorProfile;
         $appointment = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\Appointment::class)->firstOrFail();
-        abort_unless($doctor && $appointment->doctor_id === $doctor->id, 403);
+        abort_unless($doctor && (int) $appointment->doctor_id === (int) $doctor->id, 403);
 
         $user = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $appointment->user_id], \App\Models\User::class)->first();
         if ($user) {
@@ -26,14 +26,14 @@ class AppointmentController extends Controller
         }
         $appointment->setRelation('user', $user);
 
-        $chatMessages = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_chat_messages(:id, :cursor); END;", ['id' => $id], \App\Models\ChatMessage::class);
+        $chatMessages = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_chat_messages(:id, :cursor); END;", ['id' => $id], \App\Models\AppointmentChatMessage::class);
         foreach ($chatMessages as $msg) {
             $msgUser = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $msg->user_id], \App\Models\User::class)->first();
             $msg->setRelation('user', $msgUser);
         }
         $appointment->setRelation('chatMessages', $chatMessages);
 
-        $prescriptionItems = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appt_prescription_items(:id, :cursor); END;", ['id' => $id], \App\Models\PrescriptionItem::class);
+        $prescriptionItems = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appt_prescription_items(:id, :cursor); END;", ['id' => $id], \App\Models\AppointmentPrescriptionItem::class);
         foreach ($prescriptionItems as $item) {
             $medicine = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_medicine_by_id(:id, :cursor); END;", ['id' => $item->medicine_id], \App\Models\Medicine::class)->first();
             $item->setRelation('medicine', $medicine);
@@ -69,7 +69,7 @@ class AppointmentController extends Controller
     {
         $doctor = $request->user()->doctorProfile;
         $appointment = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\Appointment::class)->firstOrFail();
-        abort_unless($doctor && $appointment->doctor_id === $doctor->id, 403);
+        abort_unless($doctor && (int) $appointment->doctor_id === (int) $doctor->id, 403);
 
         if ($appointment->service_mode !== 'online') {
             return back()->withErrors([
@@ -103,7 +103,7 @@ class AppointmentController extends Controller
     {
         $doctor = $request->user()->doctorProfile;
         $appointment = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\Appointment::class)->firstOrFail();
-        abort_unless($doctor && $appointment->doctor_id === $doctor->id, 403);
+        abort_unless($doctor && (int) $appointment->doctor_id === (int) $doctor->id, 403);
 
         $validated = $request->validate([
             'prescription_diagnosis' => ['required', 'string', 'max:2000'],
@@ -234,12 +234,12 @@ class AppointmentController extends Controller
                 'intake_time' => $item['intake_time'] ?? null,
                 'instructions' => $item['instructions'] ?? null,
                 'sort_order' => $index + 1,
-                'id' => null
+                'out_id' => null
             ]);
         }
         
         $appointment = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\Appointment::class)->firstOrFail();
-        $prescriptionItems = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appt_prescription_items(:id, :cursor); END;", ['id' => $id], \App\Models\PrescriptionItem::class);
+        $prescriptionItems = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appt_prescription_items(:id, :cursor); END;", ['id' => $id], \App\Models\AppointmentPrescriptionItem::class);
         $appointment->setRelation('prescriptionItems', $prescriptionItems);
 
         AuditLogger::log('appointment.prescription_updated', $appointment, $oldPrescription, [

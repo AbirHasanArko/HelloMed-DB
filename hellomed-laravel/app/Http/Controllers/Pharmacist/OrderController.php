@@ -22,11 +22,11 @@ class OrderController extends Controller
         $params = [
             'limit' => $perPage,
             'offset' => $offset,
-            'total' => null
+            'out_total' => null
         ];
         
         $ordersCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_paginated_medicine_orders(:limit, :offset, :total, :cursor); END;", $params, \App\Models\MedicineOrder::class);
-        $total = $params['total'];
+        $total = \App\Helpers\OracleHelper::$lastOutParams['out_total'];
         
         foreach ($ordersCollection as $order) {
             $user = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $order->user_id], \App\Models\User::class)->first();

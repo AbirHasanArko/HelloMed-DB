@@ -28,7 +28,7 @@ class AppointmentChatController extends Controller
             ]);
         }
 
-        $chatMessages = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_chat_messages(:id, :cursor); END;", ['id' => $id], \App\Models\ChatMessage::class);
+        $chatMessages = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_chat_messages(:id, :cursor); END;", ['id' => $id], \App\Models\AppointmentChatMessage::class);
         
         $messages = $chatMessages->map(function ($message) use ($user) {
                 $msgUser = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $message->user_id], \App\Models\User::class)->first();
@@ -36,7 +36,7 @@ class AppointmentChatController extends Controller
                     'id' => $message->id,
                     'sender_id' => $message->user_id,
                     'sender_name' => $msgUser?->name,
-                    'is_mine' => $message->user_id === $user->id,
+                    'is_mine' => (int) $message->user_id === $user->id,
                     'message' => $message->message,
                     'created_at' => $message->created_at?->format('M d, Y h:i A'),
                     'read_at' => $message->read_at?->format('M d, Y h:i A'),
@@ -94,7 +94,7 @@ class AppointmentChatController extends Controller
             'attachment_name' => $attachmentName,
             'attachment_mime' => $attachmentMime,
             'attachment_size' => $attachmentSize,
-            'id' => null
+            'out_id' => null
         ]);
 
         return back()->with('status', 'Message sent.');
@@ -127,8 +127,8 @@ class AppointmentChatController extends Controller
     private function assertParticipant(Appointment $appointment, int $userId): void
     {
         $doctorUserId = $appointment->doctor?->user_id;
-        $isPatient = $appointment->user_id === $userId;
-        $isAssignedDoctor = $doctorUserId && $doctorUserId === $userId;
+        $isPatient = (int) $appointment->user_id === $userId;
+        $isAssignedDoctor = $doctorUserId && (int) $doctorUserId === $userId;
 
         abort_unless($isPatient || $isAssignedDoctor, 403);
     }

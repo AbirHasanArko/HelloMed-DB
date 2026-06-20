@@ -20,11 +20,11 @@ class AdminDepartmentController extends Controller
         $params = [
             'limit' => $perPage,
             'offset' => $offset,
-            'total' => null
+            'out_total' => null
         ];
 
         $departmentsCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_paginated_departments(:limit, :offset, :total, :cursor); END;", $params, \App\Models\Department::class);
-        $total = $params['total'];
+        $total = \App\Helpers\OracleHelper::$lastOutParams['out_total'];
 
         $departments = new \Illuminate\Pagination\LengthAwarePaginator($departmentsCollection, $total, $perPage, $page, ['path' => $request->url()]);
 

@@ -24,11 +24,11 @@ class PatientDashboardController extends Controller
             'user_id' => $user->id,
             'limit' => $perPage,
             'offset' => $offset,
-            'total' => null
+            'out_total' => null
         ];
 
         $appointmentsCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_paginated_patient_appts(:user_id, :limit, :offset, :total, :cursor); END;", $params, \App\Models\Appointment::class);
-        $total = $params['total'];
+        $total = \App\Helpers\OracleHelper::$lastOutParams['out_total'];
 
         foreach ($appointmentsCollection as $appt) {
             $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_by_id(:id, :cursor); END;", ['id' => $appt->doctor_id], \App\Models\Doctor::class)->first();
@@ -66,20 +66,16 @@ class PatientDashboardController extends Controller
         $payments = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_payments(:appointment_id, :cursor); END;", ['appointment_id' => $appointment->id], \App\Models\Payment::class);
         $appointment->setRelation('payments', $payments);
         
-        $prescriptionItems = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_prescription_cart_items(:appointment_id, :cursor); END;", ['appointment_id' => $appointment->id], \App\Models\PrescriptionItem::class);
+        $prescriptionItems = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appt_prescription_items(:id, :cursor); END;", ['id' => $appointment->id], \App\Models\AppointmentPrescriptionItem::class);
         foreach ($prescriptionItems as $item) {
             if ($item->medicine_id) {
-                $med = new \App\Models\Medicine([
-                    'id' => $item->medicine_id,
-                    'name' => $item->medicine_name,
-                    'price' => $item->medicine_price,
-                ]);
-                $item->setRelation('medicine', $med);
+                $medicine = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_medicine_by_id(:id, :cursor); END;", ['id' => $item->medicine_id], \App\Models\Medicine::class)->first();
+                $item->setRelation('medicine', $medicine);
             }
         }
         $appointment->setRelation('prescriptionItems', $prescriptionItems);
         
-        $chatMessages = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_chat_messages(:appointment_id, :cursor); END;", ['appointment_id' => $appointment->id], \App\Models\ChatMessage::class);
+        $chatMessages = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_chat_messages(:appointment_id, :cursor); END;", ['appointment_id' => $appointment->id], \App\Models\AppointmentChatMessage::class);
         foreach ($chatMessages as $msg) {
             $msgUser = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $msg->user_id], \App\Models\User::class)->first();
             $msg->setRelation('user', $msgUser);

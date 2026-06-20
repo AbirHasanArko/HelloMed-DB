@@ -21,11 +21,11 @@ class AdminAppointmentController extends Controller
         $params = [
             'limit' => $perPage,
             'offset' => $offset,
-            'total' => null
+            'out_total' => null
         ];
 
         $appointmentsCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_paginated_all_appointments(:limit, :offset, :total, :cursor); END;", $params, \App\Models\Appointment::class);
-        $total = $params['total'];
+        $total = \App\Helpers\OracleHelper::$lastOutParams['out_total'];
 
         foreach ($appointmentsCollection as $appt) {
             $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_by_id(:id, :cursor); END;", ['id' => $appt->doctor_id], \App\Models\Doctor::class)->first();

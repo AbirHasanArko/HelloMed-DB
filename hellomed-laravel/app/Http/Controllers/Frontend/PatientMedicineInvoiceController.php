@@ -10,7 +10,7 @@ class PatientMedicineInvoiceController extends Controller
 {
     public function __invoke(MedicineOrder $order)
     {
-        abort_unless($order->user_id === request()->user()->id, 403);
+        abort_unless((int) $order->user_id === request()->user()->id, 403);
 
         $order->load('items.medicine', 'user');
 

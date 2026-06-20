@@ -53,6 +53,7 @@ CREATE OR REPLACE PACKAGE pkg_crud_writes AS
         p_user_id IN NUMBER,
         p_department_id IN NUMBER,
         p_name IN VARCHAR2,
+        p_slug IN VARCHAR2,
         p_specialty IN VARCHAR2,
         p_qualification IN VARCHAR2,
         p_experience_years IN NUMBER,
@@ -721,6 +722,7 @@ CREATE OR REPLACE PACKAGE BODY pkg_crud_writes AS
         p_user_id IN NUMBER,
         p_department_id IN NUMBER,
         p_name IN VARCHAR2,
+        p_slug IN VARCHAR2,
         p_specialty IN VARCHAR2,
         p_qualification IN VARCHAR2,
         p_experience_years IN NUMBER,
@@ -740,11 +742,11 @@ CREATE OR REPLACE PACKAGE BODY pkg_crud_writes AS
     ) IS
     BEGIN
         INSERT INTO doctors (
-            user_id, department_id, name, specialty, qualification, experience_years,
+            user_id, department_id, name, slug, specialty, qualification, experience_years,
             consultation_fee, bio, online_available_days, offline_available_days, available_days,
             slot_minutes, is_active, is_featured, featured_order, photo_path, online_available, offline_available
         ) VALUES (
-            p_user_id, p_department_id, p_name, p_specialty, p_qualification, p_experience_years,
+            p_user_id, p_department_id, p_name, p_slug, p_specialty, p_qualification, p_experience_years,
             p_consultation_fee, p_about, p_online_available_days, p_offline_available_days, p_available_days,
             p_slot_minutes, p_is_active, p_is_featured, p_featured_order, p_photo_path, p_online_available, p_offline_available
         ) RETURNING id INTO p_doctor_id;

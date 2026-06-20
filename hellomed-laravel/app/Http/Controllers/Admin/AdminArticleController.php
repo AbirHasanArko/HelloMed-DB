@@ -23,11 +23,11 @@ class AdminArticleController extends Controller
         $params = [
             'limit' => $perPage,
             'offset' => $offset,
-            'total' => null
+            'out_total' => null
         ];
 
         $articlesCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_paginated_admin_articles(:limit, :offset, :total, :cursor); END;", $params, \App\Models\Article::class);
-        $total = $params['total'];
+        $total = \App\Helpers\OracleHelper::$lastOutParams['out_total'];
 
         foreach ($articlesCollection as $article) {
             $category = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_active_article_categories(:cursor); END;", [], \App\Models\ArticleCategory::class)->where('id', $article->category_id)->first();
@@ -71,12 +71,12 @@ class AdminArticleController extends Controller
         }
 
         $params = [
-            'category_id' => $validated['category_id'],
+            'category_id' => $validated['article_category_id'],
             'user_id' => $request->user()->id,
             'title' => $validated['title'],
             'slug' => \Illuminate\Support\Str::slug($validated['title']),
             'excerpt' => $validated['excerpt'],
-            'content' => $validated['content'],
+            'content' => $validated['body'],
             'cover_image_path' => $coverImagePath,
             'is_featured' => $request->boolean('is_featured') ? 1 : 0,
             'featured_order' => $request->integer('featured_order', 0),
@@ -129,11 +129,11 @@ class AdminArticleController extends Controller
 
         \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_article(:id, :category_id, :title, :slug, :excerpt, :content, :cover_image_path, :is_featured, :featured_order, :is_published, :publication_status, :reviewed_by_user_id, TO_DATE(:reviewed_at, 'YYYY-MM-DD HH24:MI:SS'), TO_DATE(:published_at, 'YYYY-MM-DD HH24:MI:SS')); END;", [
             'id' => $article->id,
-            'category_id' => $validated['category_id'],
+            'category_id' => $validated['article_category_id'],
             'title' => $validated['title'],
             'slug' => \Illuminate\Support\Str::slug($validated['title']),
             'excerpt' => $validated['excerpt'],
-            'content' => $validated['content'],
+            'content' => $validated['body'],
             'cover_image_path' => $coverImagePath,
             'is_featured' => $request->boolean('is_featured') ? 1 : 0,
             'featured_order' => $request->integer('featured_order', 0),

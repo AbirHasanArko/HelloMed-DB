@@ -22,7 +22,7 @@ class PatientMedicineOrderController extends Controller
 
     public function show(MedicineOrder $order)
     {
-        abort_unless($order->user_id === request()->user()->id, 403);
+        abort_unless((int) $order->user_id === request()->user()->id, 403);
 
         return view('patient.medicine-order-show', [
             'order' => $order->load('items.medicine'),
@@ -31,7 +31,7 @@ class PatientMedicineOrderController extends Controller
 
     public function edit(MedicineOrder $order)
     {
-        abort_unless($order->user_id === request()->user()->id, 403);
+        abort_unless((int) $order->user_id === request()->user()->id, 403);
         abort_unless($order->status === 'pending', 403, 'Only pending orders can be edited.');
 
         return view('patient.medicine-order-edit', compact('order'));
@@ -39,7 +39,7 @@ class PatientMedicineOrderController extends Controller
 
     public function update(\Illuminate\Http\Request $request, MedicineOrder $order)
     {
-        abort_unless($order->user_id === $request->user()->id, 403);
+        abort_unless((int) $order->user_id === $request->user()->id, 403);
         abort_unless($order->status === 'pending', 403, 'Only pending orders can be edited.');
 
         $validated = $request->validate([

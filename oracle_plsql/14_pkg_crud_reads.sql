@@ -545,7 +545,7 @@ create or replace package body pkg_crud_reads as
                                                        from departments
                                                       where is_active = 1
                                                       order by is_featured desc,
-                                                               featured_order asc,
+                                                               NULLIF(featured_order, 0) asc nulls last,
                                                                created_at desc
                                                   )
                              where rownum <= 6;
@@ -562,7 +562,7 @@ create or replace package body pkg_crud_reads as
                                                    on d.department_id = dept.id
                                                     where d.is_active = 1
                                                     order by d.is_featured desc,
-                                                             d.featured_order asc,
+                                                             NULLIF(d.featured_order, 0) asc nulls last,
                                                              d.created_at desc
                                                 )
                             where rownum <= 8;
@@ -579,7 +579,7 @@ create or replace package body pkg_crud_reads as
                                                    on a.user_id = u.id
                                                     where a.is_published = 1
                                                     order by a.is_featured desc,
-                                                             a.featured_order asc,
+                                                             NULLIF(a.featured_order, 0) asc nulls last,
                                                              a.published_at desc
                                                 )
                             where rownum <= 3;

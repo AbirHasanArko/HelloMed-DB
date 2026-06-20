@@ -28,14 +28,14 @@ class AmbulanceController extends Controller
             'patient_name' => $request->patient_name,
             'patient_phone' => $request->patient_phone,
             'address' => $request->address,
-            'request_id' => null
+            'out_request_id' => null
         ];
         
-        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_ambulance.request_ambulance(:user_id, :patient_name, :patient_phone, :address, :request_id); END;", $params);
+        $params = \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_ambulance.request_ambulance(:user_id, :patient_name, :patient_phone, :address, :request_id); END;", $params);
         
-        $requestId = $params['request_id'];
+        $requestId = $params['out_request_id'];
         
-        if ($request->latitude && $request->longitude) {
+        if ($request->latitude && $request->longitude && $requestId) {
             \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_ambulance_location(:id, :latitude, :longitude); END;", [
                 'id' => $requestId,
                 'latitude' => $request->latitude,

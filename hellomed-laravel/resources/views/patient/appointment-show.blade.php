@@ -76,26 +76,28 @@
                 @endif
             </div>
 
-            <div class="card">
-                <h3>Manage appointment</h3>
-                <form method="POST" action="{{ route('patient.appointments.update', $appointment) }}" style="margin-bottom: 20px;">
-                    @csrf
-                    @method('PATCH')
-                    <input type="hidden" name="action" value="reschedule">
-                    <label>
-                        New schedule
-                        <input type="datetime-local" name="scheduled_for" required>
-                    </label>
-                    <button class="button" type="submit">Reschedule</button>
-                </form>
+            @if (in_array($appointment->status, ['pending', 'confirmed']))
+                <div class="card">
+                    <h3>Manage appointment</h3>
+                    <form method="POST" action="{{ route('patient.appointments.update', $appointment) }}" style="margin-bottom: 20px;">
+                        @csrf
+                        @method('PATCH')
+                        <input type="hidden" name="action" value="reschedule">
+                        <label>
+                            New schedule
+                            <input type="datetime-local" name="scheduled_for" required>
+                        </label>
+                        <button class="button" type="submit">Reschedule</button>
+                    </form>
 
-                <form method="POST" action="{{ route('patient.appointments.update', $appointment) }}">
-                    @csrf
-                    @method('PATCH')
-                    <input type="hidden" name="action" value="cancel">
-                    <button class="ghost-button" type="submit">Cancel appointment</button>
-                </form>
-            </div>
+                    <form method="POST" action="{{ route('patient.appointments.update', $appointment) }}">
+                        @csrf
+                        @method('PATCH')
+                        <input type="hidden" name="action" value="cancel">
+                        <button class="ghost-button" type="submit">Cancel appointment</button>
+                    </form>
+                </div>
+            @endif
         </div>
 
         <div class="card" style="margin-top: 20px;">

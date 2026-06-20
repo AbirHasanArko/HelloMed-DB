@@ -18,11 +18,11 @@ class InventoryController extends Controller
         $params = [
             'limit' => $perPage,
             'offset' => $offset,
-            'total' => null
+            'out_total' => null
         ];
 
         $itemsCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_paginated_inventory_items(:limit, :offset, :total, :cursor); END;", $params, \App\Models\InventoryItem::class);
-        $total = $params['total'];
+        $total = \App\Helpers\OracleHelper::$lastOutParams['out_total'];
 
         $items = new \Illuminate\Pagination\LengthAwarePaginator($itemsCollection, $total, $perPage, $page, ['path' => $request->url()]);
 

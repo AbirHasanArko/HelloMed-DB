@@ -250,7 +250,7 @@ CREATE OR REPLACE PACKAGE BODY pkg_filters AS
                 LEFT JOIN article_categories c ON art.article_category_id = c.id
                 WHERE art.is_published = 1
                   AND (p_category_slug IS NULL OR c.slug = p_category_slug)
-                ORDER BY art.is_featured DESC, art.featured_order ASC, art.published_at DESC
+                ORDER BY art.is_featured DESC, NULLIF(art.featured_order, 0) ASC NULLS LAST, art.published_at DESC
             ) a WHERE ROWNUM <= NVL(p_offset, 0) + NVL(p_limit, 1000000)
         ) WHERE rnum > NVL(p_offset, 0);
     END filter_articles;

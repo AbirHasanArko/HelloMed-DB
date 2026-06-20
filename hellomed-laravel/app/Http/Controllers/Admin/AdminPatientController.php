@@ -20,11 +20,11 @@ class AdminPatientController extends Controller
             'search' => $search,
             'limit' => $perPage,
             'offset' => $offset,
-            'total' => null
+            'out_total' => null
         ];
 
         $patientsCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_search.search_patients(:search, :limit, :offset, :total, :cursor); END;", $params, \App\Models\User::class);
-        $totalCount = $params['total'];
+        $totalCount = $params['out_total'];
 
         foreach ($patientsCollection as $patient) {
             $patientProfile = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_patient_profile(:user_id, :cursor); END;", ['user_id' => $patient->id], \App\Models\PatientProfile::class)->first();

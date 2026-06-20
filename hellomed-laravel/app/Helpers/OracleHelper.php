@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\DB;
 
 class OracleHelper
 {
+    public static $lastOutParams = [];
+
     /**
      * Executes a PL/SQL procedure that returns a single SYS_REFCURSOR 
      * and maps it to a collection of Eloquent models.
@@ -14,15 +16,22 @@ class OracleHelper
         $pdo = DB::getPdo();
         $stmt = $pdo->prepare($procedure);
         
-        foreach ($bindings as $key => $value) {
-            $bindKey = str_starts_with($key, ':') ? $key : ':' . $key;
-            $stmt->bindValue($bindKey, $value);
+        foreach ($bindings as $key => &$value) {
+            if (str_starts_with($key, 'out_')) {
+                $bindKey = ':' . substr($key, 4);
+                $stmt->bindParam($bindKey, $value, \PDO::PARAM_STR, 4000);
+            } else {
+                $bindKey = str_starts_with($key, ':') ? $key : ':' . $key;
+                $stmt->bindParam($bindKey, $value);
+            }
         }
         
         $cursor = null;
         $stmt->bindParam(':cursor', $cursor, \PDO::PARAM_STMT);
         $stmt->execute();
         oci_execute($cursor);
+        
+        self::$lastOutParams = $bindings;
         
         $results = [];
         while ($row = oci_fetch_assoc($cursor)) {
@@ -54,7 +63,7 @@ class OracleHelper
      * Executes a PL/SQL procedure for DML (INSERT/UPDATE/DELETE)
      * To use OUT parameters, prefix the key with 'out_' and pass by reference.
      */
-    public static function executeProcedure($procedure, &$bindings = [])
+    public static function executeProcedure($procedure, $bindings = [])
     {
         $pdo = DB::getPdo();
         $stmt = $pdo->prepare($procedure);
@@ -69,6 +78,7 @@ class OracleHelper
             }
         }
         
-        return $stmt->execute();
+        $stmt->execute();
+        return $bindings;
     }
 }

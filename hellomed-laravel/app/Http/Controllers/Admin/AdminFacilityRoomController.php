@@ -19,11 +19,11 @@ class AdminFacilityRoomController extends Controller
         $params = [
             'limit' => $perPage,
             'offset' => $offset,
-            'total' => null
+            'out_total' => null
         ];
 
         $roomsCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_paginated_facility_rooms(:limit, :offset, :total, :cursor); END;", $params, \App\Models\FacilityRoom::class);
-        $total = $params['total'];
+        $total = \App\Helpers\OracleHelper::$lastOutParams['out_total'];
 
         $rooms = new \Illuminate\Pagination\LengthAwarePaginator($roomsCollection, $total, $perPage, $page, ['path' => $request->url()]);
 

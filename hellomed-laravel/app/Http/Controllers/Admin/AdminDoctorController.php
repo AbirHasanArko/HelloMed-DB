@@ -30,7 +30,7 @@ class AdminDoctorController extends Controller
             'password' => Hash::make($validated['initial_password']),
             'out_user_id' => null
         ];
-        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.create_doctor_user(:name, :email, :password, :user_id); END;", $userBindings);
+        $userBindings = \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.create_doctor_user(:name, :email, :password, :user_id); END;", $userBindings);
         $userId = $userBindings['out_user_id'];
 
         $photoPath = null;
@@ -42,6 +42,7 @@ class AdminDoctorController extends Controller
             'user_id' => $userId,
             'department_id' => $validated['department_id'],
             'name' => $validated['name'],
+            'slug' => \Illuminate\Support\Str::slug($validated['name']),
             'specialty' => $validated['specialty'],
             'qualification' => $validated['qualification'] ?? null,
             'experience_years' => $validated['experience_years'],
@@ -59,8 +60,9 @@ class AdminDoctorController extends Controller
             'offline_available' => $request->boolean('offline_available') ? 1 : 0,
             'out_doctor_id' => null
         ];
-        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.create_doctor_profile(:user_id, :department_id, :name, :specialty, :qualification, :experience_years, :consultation_fee, :about, :online_available_days, :offline_available_days, :available_days, :slot_minutes, :is_active, :is_featured, :featured_order, :photo_path, :online_available, :offline_available, :doctor_id); END;", $profileBindings);
+        $profileBindings = \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.create_doctor_profile(:user_id, :department_id, :name, :slug, :specialty, :qualification, :experience_years, :consultation_fee, :about, :online_available_days, :offline_available_days, :available_days, :slot_minutes, :is_active, :is_featured, :featured_order, :photo_path, :online_available, :offline_available, :doctor_id); END;", $profileBindings);
 
+        $doctorId = $profileBindings['out_doctor_id'];
         $doctorUser = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $userId], \App\Models\User::class)->first();
 
         AuditLogger::log('user.role_assigned', $doctorUser, [], [
@@ -82,11 +84,11 @@ class AdminDoctorController extends Controller
         $params = [
             'limit' => $perPage,
             'offset' => $offset,
-            'total' => null
+            'out_total' => null
         ];
 
         $doctorsCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_paginated_doctors(:limit, :offset, :total, :cursor); END;", $params, \App\Models\Doctor::class);
-        $total = $params['total'];
+        $total = \App\Helpers\OracleHelper::$lastOutParams['out_total'];
 
         foreach ($doctorsCollection as $doctor) {
             $department = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_department_by_id(:id, :cursor); END;", ['id' => $doctor->department_id], \App\Models\Department::class)->first();

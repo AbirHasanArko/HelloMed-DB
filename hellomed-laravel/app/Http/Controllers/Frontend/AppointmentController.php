@@ -55,7 +55,23 @@ class AppointmentController extends Controller
         $hydratedDoctor->setRelation('department', $department);
         $hydratedDoctor->name = $hydratedDoctor->user_name;
 
-        return view('appointments.create', ['doctor' => $hydratedDoctor]);
+        $bookedTimes = \App\Helpers\OracleHelper::fetchCursor("
+            BEGIN
+                OPEN :cursor FOR
+                    SELECT scheduled_for, service_mode 
+                    FROM appointments 
+                    WHERE doctor_id = :doctor_id 
+                      AND status != 'cancelled'
+                      AND scheduled_for >= SYSDATE
+                      AND scheduled_for <= SYSDATE + 7
+                    ORDER BY scheduled_for ASC;
+            END;
+        ", ['doctor_id' => $hydratedDoctor->id]);
+
+        return view('appointments.create', [
+            'doctor' => $hydratedDoctor,
+            'bookedTimes' => $bookedTimes
+        ]);
     }
 
     public function store(StoreAppointmentRequest $request)
@@ -92,12 +108,21 @@ class AppointmentController extends Controller
             'service_mode' => $validated['service_mode'],
             'scheduled_for' => $scheduledForStr,
             'reason' => $validated['reason'],
-            'appointment_id' => null
+            'out_appointment_id' => null
         ];
 
-        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_appointments.book_appointment(:user_id, :doctor_id, :department_id, :service_id, :patient_name, :patient_email, :patient_phone, :service_mode, TO_TIMESTAMP(:scheduled_for, 'YYYY-MM-DD HH24:MI:SS'), :reason, :appointment_id); END;", $bookParams);
+        try {
+            $bookParams = \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_appointments.book_appointment(:user_id, :doctor_id, :department_id, :service_id, :patient_name, :patient_email, :patient_phone, :service_mode, TO_TIMESTAMP(:scheduled_for, 'YYYY-MM-DD HH24:MI:SS'), :reason, :appointment_id); END;", $bookParams);
+        } catch (\Exception $e) {
+            if (str_contains($e->getMessage(), 'Time conflict')) {
+                throw ValidationException::withMessages([
+                    'scheduled_for' => 'Time conflict detected: This slot overlaps with an existing appointment.',
+                ]);
+            }
+            throw $e;
+        }
 
-        $appointmentId = $bookParams['appointment_id'];
+        $appointmentId = $bookParams['out_appointment_id'];
 
         $appointment = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_by_id(:id, :cursor); END;", ['id' => $appointmentId], \App\Models\Appointment::class)->firstOrFail();
         
@@ -116,10 +141,10 @@ class AppointmentController extends Controller
                 'method' => $request->input('payment_method'),
                 'amount' => $amount,
                 'status' => 'pending',
-                'id' => null
+                'out_id' => null
             ];
             
-            \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.create_payment(:appointment_id, :user_id, :method, :amount, :status, :id); END;", $paymentParams);
+            $paymentParams = \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.create_payment(:appointment_id, :user_id, :method, :amount, :status, :id); END;", $paymentParams);
         }
 
         $appointment->setRelation('doctor', $doctor);

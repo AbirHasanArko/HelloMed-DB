@@ -18,11 +18,11 @@ class AdminPaymentController extends Controller
         $params = [
             'limit' => $perPage,
             'offset' => $offset,
-            'total' => null
+            'out_total' => null
         ];
 
         $paymentsCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_paginated_payments(:limit, :offset, :total, :cursor); END;", $params, \App\Models\Payment::class);
-        $total = $params['total'];
+        $total = \App\Helpers\OracleHelper::$lastOutParams['out_total'];
 
         foreach ($paymentsCollection as $payment) {
             $user = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $payment->user_id], \App\Models\User::class)->first();

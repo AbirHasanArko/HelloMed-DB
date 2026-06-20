@@ -18,11 +18,11 @@ class MedicineController extends Controller
         $params = [
             'limit' => $perPage,
             'offset' => $offset,
-            'total' => null
+            'out_total' => null
         ];
 
         $medicinesCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_paginated_medicines(:limit, :offset, :total, :cursor); END;", $params, \App\Models\Medicine::class);
-        $total = $params['total'];
+        $total = \App\Helpers\OracleHelper::$lastOutParams['out_total'];
 
         $medicines = new \Illuminate\Pagination\LengthAwarePaginator($medicinesCollection, $total, $perPage, $page, ['path' => $request->url()]);
 

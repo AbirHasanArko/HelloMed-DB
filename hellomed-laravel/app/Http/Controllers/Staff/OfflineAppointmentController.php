@@ -66,7 +66,7 @@ class OfflineAppointmentController extends Controller
                     'password' => $passwordStr,
                     'out_user_id' => null
                 ];
-                \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.create_patient_user(:name, :email, :password, :out_user_id); END;", $createParams);
+                $createParams = \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.create_patient_user(:name, :email, :password, :user_id); END;", $createParams);
                 $userId = $createParams['out_user_id'];
             }
 
@@ -101,7 +101,7 @@ class OfflineAppointmentController extends Controller
             ];
 
             try {
-                \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_appointments.book_appointment(:user_id, :doctor_id, :department_id, :service_id, :patient_name, :patient_email, :patient_phone, :service_mode, :scheduled_for, :reason, :out_appointment_id); END;", $apptParams);
+                $apptParams = \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_appointments.book_appointment(:user_id, :doctor_id, :department_id, :service_id, :patient_name, :patient_email, :patient_phone, :service_mode, TO_TIMESTAMP(:scheduled_for, 'YYYY-MM-DD HH24:MI:SS'), :reason, :appointment_id); END;", $apptParams);
             } catch (\Exception $e) {
                 if (str_contains($e->getMessage(), 'Time conflict')) {
                     throw ValidationException::withMessages([

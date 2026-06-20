@@ -18,15 +18,15 @@ INSERT INTO users (id, name, email, password, role) VALUES (5, 'Doctor User', 'd
 INSERT INTO users (id, name, email, password, role) VALUES (6, 'Dummy User 6', 'dummy6@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
 INSERT INTO users (id, name, email, password, role) VALUES (7, 'Dummy User 7', 'dummy7@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
 INSERT INTO users (id, name, email, password, role) VALUES (8, 'Dummy User 8', 'dummy8@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
-INSERT INTO users (id, name, email, password, role) VALUES (9, 'Dr. Tariq Rahman', 'dummy9@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
-INSERT INTO users (id, name, email, password, role) VALUES (10, 'Dr. Imran Ahmed', 'dummy10@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
-INSERT INTO users (id, name, email, password, role) VALUES (11, 'Dr. Kamal Uddin', 'dummy11@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
-INSERT INTO users (id, name, email, password, role) VALUES (12, 'Dr. Rashedul Islam', 'dummy12@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
-INSERT INTO users (id, name, email, password, role) VALUES (13, 'Dr. Shafiqur Rahman', 'dummy13@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
-INSERT INTO users (id, name, email, password, role) VALUES (14, 'Dr. Arafat Hossain', 'dummy14@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
-INSERT INTO users (id, name, email, password, role) VALUES (15, 'Dr. Nazmul Huda', 'dummy15@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
-INSERT INTO users (id, name, email, password, role) VALUES (16, 'Sumiya Roza', 'dummy16@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
-INSERT INTO users (id, name, email, password, role) VALUES (17, 'Abir Hasan Arko', 'dummy17@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
+INSERT INTO users (id, name, email, password, role) VALUES (9, 'Dr. Tariq Rahman', 'tariq@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
+INSERT INTO users (id, name, email, password, role) VALUES (10, 'Dr. Imran Ahmed', 'imran@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
+INSERT INTO users (id, name, email, password, role) VALUES (11, 'Dr. Kamal Uddin', 'kamal@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
+INSERT INTO users (id, name, email, password, role) VALUES (12, 'Dr. Rashedul Islam', 'rashedul@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
+INSERT INTO users (id, name, email, password, role) VALUES (13, 'Dr. Shafiqur Rahman', 'shafiqur@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
+INSERT INTO users (id, name, email, password, role) VALUES (14, 'Dr. Arafat Hossain', 'arafat@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
+INSERT INTO users (id, name, email, password, role) VALUES (15, 'Dr. Nazmul Huda', 'nazmul@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
+INSERT INTO users (id, name, email, password, role) VALUES (16, 'Sumiya Roza', 'sumiya@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
+INSERT INTO users (id, name, email, password, role) VALUES (17, 'Abir Hasan Arko', 'abir@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
 INSERT INTO users (id, name, email, password, role) VALUES (18, 'Dummy User 18', 'dummy18@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
 INSERT INTO users (id, name, email, password, role) VALUES (19, 'Dummy User 19', 'dummy19@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
 

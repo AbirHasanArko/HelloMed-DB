@@ -141,7 +141,7 @@ class MedicineCartController extends Controller
             'out_p_order_number' => null,
         ];
         
-        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_pharmacy.create_order(:p_user_id, :p_delivery_address, :p_phone, :p_payment_method, :p_payment_callback_token, :p_payment_status, :p_notes, :p_prescription_path, :p_contains_prescription_items, TO_TIMESTAMP(:p_inventory_committed_at, 'YYYY-MM-DD HH24:MI:SS'), :p_order_id, :p_order_number); END;", $bindings);
+        $bindings = \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_pharmacy.create_order(:p_user_id, :p_delivery_address, :p_phone, :p_payment_method, :p_payment_callback_token, :p_payment_status, :p_notes, :p_prescription_path, :p_contains_prescription_items, TO_TIMESTAMP(:p_inventory_committed_at, 'YYYY-MM-DD HH24:MI:SS'), :p_order_id, :p_order_number); END;", $bindings);
         
         $orderId = $bindings['out_p_order_id'];
         $orderNumber = $bindings['out_p_order_number'];
