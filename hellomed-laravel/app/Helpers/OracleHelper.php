@@ -15,7 +15,8 @@ class OracleHelper
         $stmt = $pdo->prepare($procedure);
         
         foreach ($bindings as $key => $value) {
-            $stmt->bindValue($key, $value);
+            $bindKey = str_starts_with($key, ':') ? $key : ':' . $key;
+            $stmt->bindValue($bindKey, $value);
         }
         
         $cursor = null;

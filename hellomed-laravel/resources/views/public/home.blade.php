@@ -100,7 +100,7 @@
                         </div>
                     @endif
                     <div class="tag">{{ $doctor->department_name ?? 'N/A' }}</div>
-                    <h3>{{ $doctor->user_name }}</h3>
+                    <h3>{{ $doctor->name }}</h3>
                     <p>{{ $doctor->specialty }}</p>
                 </a>
             @endforeach

@@ -51,6 +51,8 @@
   - [pkg_inventory](#6-pkg_inventory-10_pkg_inventorysql)
   - [pkg_search](#7-pkg_search-11_pkg_searchsql)
   - [pkg_filters](#8-pkg_filters-12_pkg_filterssql)
+  - [pkg_crud_writes](#9-pkg_crud_writes-13_pkg_crud_writessql)
+  - [pkg_crud_reads](#10-pkg_crud_reads-14_pkg_crud_readssql)
   - [Package Design Philosophy](#package-design-philosophy)
 - [Industry Standards & Design Patterns](#-industry-standards--design-patterns)
   - [Database Normalization](#database-normalization)
@@ -95,7 +97,7 @@ All core logic, tables, sequences, triggers, and data manipulation rules are def
 | **Sequences** | 24 auto-increment sequences |
 | **Triggers** | 24 BEFORE INSERT triggers |
 | **PL/SQL Packages** | 10 (Users, Appointments, Pharmacy, Ambulance, Facilities, Inventory, Search, Filters, CRUD Writes, CRUD Reads) |
-| **Stored Procedures** | 119 across all packages |
+| **Stored Procedures** | 124 across all packages |
 | **Indexes** | 7 performance-optimized indexes |
 | **Frontend** | Laravel 11 via OCI8 bridge |
 
@@ -106,7 +108,7 @@ To give an idea of the depth of the PL/SQL implementation, here are some raw cod
 | PL/SQL Construct | Count | Notes |
 |---|---|---|
 | **Packages** | 10 | Modularized business logic wrappers |
-| **Procedures** | 119 | Distinct callable stored procedures |
+| **Procedures** | 124 | Distinct callable stored procedures |
 | **Functions** | 0 | Business logic encapsulated within procedures |
 | **Triggers** | 24 | `BEFORE INSERT` auto-increment & timestamp triggers |
 | **IF / ELSIF / ELSE** | ~125 | Conditional branching for business rules |
@@ -585,15 +587,44 @@ A centralized package for performing all DML operations (INSERT, UPDATE, DELETE)
 
 | Procedure | Parameters | Description |
 |---|---|---|
-| `create_department` | `p_name`, `p_slug`, `p_description`, `p_service_scope`, `p_is_active`, `p_is_featured`, `p_featured_order`, `p_image_path`, `OUT p_id` | Registers a new hospital department |
-| `update_department` | `p_id`, `p_name`, `p_slug`, `p_description`, ... | Updates an existing department |
+| `update_ambulance_request` | `p_id`, `p_staff_id`, `p_status`, `p_dispatched_at`, `p_resolved_at`, `p_notes` | Updates status and staff for an ambulance request |
+| `update_ambulance_location` | `p_id`, `p_latitude`, `p_longitude` | Updates GPS coordinates for an ambulance |
+| `create_department` | `p_name`, `p_description`, `p_service_scope`, `p_is_active`, `p_is_featured`, `p_featured_order`, `p_image_path`, `OUT p_id` | Registers a new hospital department |
+| `update_department` | `p_id`, `p_name`, `p_description`, `p_service_scope`, `p_is_active`, `p_is_featured`, `p_featured_order`, `p_image_path` | Updates an existing department |
 | `create_doctor_user` | `p_name`, `p_email`, `p_password`, `OUT p_user_id` | Registers a doctor user specifically |
-| `create_doctor_profile` | `p_user_id`, `p_department_id`, ... | Creates a detailed doctor profile linked to the user account |
+| `create_doctor_profile` | `p_user_id`, `p_department_id`, `p_name`, `p_specialty`, `p_qualification`, `p_experience_years`, `p_consultation_fee`, `p_about`, `p_online_available_days`, `p_offline_available_days`, `p_available_days`, `p_slot_minutes`, `p_is_active`, `p_is_featured`, `p_featured_order`, `p_photo_path`, `p_online_available`, `p_offline_available`, `OUT p_doctor_id` | Creates a detailed doctor profile linked to the user account |
+| `update_doctor_profile` | `p_id`, `p_department_id`, `p_specialty`, `p_qualification`, `p_experience_years`, `p_consultation_fee`, `p_about`, `p_online_available_days`, `p_offline_available_days`, `p_slot_minutes`, `p_is_active`, `p_is_featured`, `p_featured_order`, `p_photo_path` | Updates an existing doctor profile |
 | `create_facility_room` | `p_room_number`, `p_room_type`, `p_capacity`, `p_is_active`, `OUT p_id` | Registers a new hospital facility room |
-| `create_medicine` | `p_name`, `p_description`, `p_medicine_group`, ... | Adds a new medicine to the e-pharmacy catalog |
-| `create_article` | `p_category_id`, `p_user_id`, `p_title`, `p_slug`, ... | Submits a new health article to the CMS |
+| `update_facility_room` | `p_id`, `p_room_number`, `p_room_type`, `p_capacity`, `p_is_active` | Updates details of a facility room |
+| `create_medicine` | `p_name`, `p_description`, `p_medicine_group`, `p_strength`, `p_amount`, `p_manufacturer`, `p_price`, `p_requires_prescription`, `p_stock_quantity`, `p_is_active`, `p_image_path`, `OUT p_id` | Adds a new medicine to the e-pharmacy catalog |
+| `update_medicine` | `p_id`, `p_name`, `p_description`, `p_medicine_group`, `p_strength`, `p_amount`, `p_manufacturer`, `p_price`, `p_requires_prescription`, `p_stock_quantity`, `p_is_active`, `p_image_path` | Updates details and stock of a medicine |
+| `update_order_payment` | `p_id`, `p_payment_method`, `p_payment_status`, `p_payment_reference` | Updates payment method and status for an order |
+| `update_medicine_order_status` | `p_id`, `p_status`, `p_payment_status` | Updates the fulfillment status of an order |
+| `update_order_payment_token` | `p_id`, `p_payment_callback_token` | Updates the payment callback token for an order |
+| `update_order_details` | `p_id`, `p_delivery_address`, `p_phone`, `p_status` | Updates delivery address and phone for an order |
+| `create_article` | `p_article_category_id`, `p_user_id`, `p_title`, `p_slug`, `p_excerpt`, `p_body`, `p_cover_image_path`, `p_is_featured`, `p_featured_order`, `p_is_published`, `p_publication_status`, `p_published_at`, `OUT p_article_id` | Submits a new health article to the CMS |
+| `update_article` | `p_id`, `p_article_category_id`, `p_title`, `p_slug`, `p_excerpt`, `p_body`, `p_cover_image_path`, `p_is_featured`, `p_featured_order`, `p_is_published`, `p_publication_status`, `p_reviewed_by_user_id`, `p_reviewed_at`, `p_published_at` | Updates an existing health article |
+| `update_user` | `p_id`, `p_name`, `p_email`, `p_password` | Updates basic user information |
+| `update_user_password` | `p_user_id`, `p_password` | Changes a user password |
+| `create_patient_user` | `p_name`, `p_email`, `p_password`, `OUT p_user_id` | Registers a new patient user account |
+| `update_patient_profile` | `p_user_id`, `p_dob`, `p_gender`, `p_height`, `p_weight`, `p_conditions`, `p_allergies`, `p_notes` | Updates medical profile details for a patient |
+| `update_question_status` | `p_id`, `p_status` | Updates the status of a QnA question |
+| `reschedule_appointment` | `p_id`, `p_scheduled_for` | Changes the scheduled time of an appointment |
+| `create_qna_question` | `p_user_id`, `p_title`, `p_question`, `p_status`, `OUT p_id` | Submits a new patient question to the QnA forum |
+| `create_qna_answer` | `p_question_id`, `p_user_id`, `p_answer`, `p_is_official`, `OUT p_id` | Submits a doctor or official answer to a QnA question |
+| `create_payment` | `p_appointment_id`, `p_user_id`, `p_method`, `p_amount`, `p_status`, `OUT p_id` | Records a new payment transaction |
+| `update_appt_payment_status` | `p_id`, `p_payment_status` | Updates the payment status of an appointment |
+| `update_appt_prescription` | `p_id`, `p_doctor_prescription`, `p_prescription_diagnosis`, `p_prescription_medicines`, `p_prescription_advice`, `p_prescription_safety_notes`, `p_prescription_follow_up_date`, `p_status` | Updates the doctor prescription details for an appointment |
+| `delete_prescription_items` | `p_appointment_id` | Removes all medicine items from a prescription |
+| `create_prescription_item` | `p_appointment_id`, `p_medicine_id`, `p_medicine_name`, `p_amount`, `p_dosage`, `p_intake_time`, `p_instructions`, `p_sort_order`, `OUT p_id` | Adds a specific medicine item to a prescription |
+| `create_appt_chat_message` | `p_appointment_id`, `p_user_id`, `p_message`, `p_attachment_path`, `p_attachment_name`, `p_attachment_mime`, `p_attachment_size`, `OUT p_id` | Records a new chat message in an appointment |
+| `mark_appt_chat_messages_read` | `p_appointment_id`, `p_user_id`, `OUT p_updated` | Marks chat messages as read by the user |
+| `update_doctor_schedule` | `p_doctor_id`, `p_clinic_address`, `p_slot_minutes`, `p_online_available`, `p_offline_available`, `p_online_available_days`, `p_online_available_from`, `p_online_available_to`, `p_offline_available_days`, `p_offline_available_from`, `p_offline_available_to`, `p_available_days`, `p_available_from`, `p_available_to` | Updates the availability schedule for a doctor |
+| `create_article` | `p_category_id`, `p_user_id`, `p_title`, `p_slug`, `p_excerpt`, `p_content`, `p_cover_image_path`, `p_is_featured`, `p_featured_order`, `p_is_published`, `p_publication_status`, `p_reviewed_by_user_id`, `p_reviewed_at`, `OUT p_id` | Submits a new health article to the CMS |
+| `update_article` | `p_id`, `p_category_id`, `p_title`, `p_slug`, `p_excerpt`, `p_content`, `p_cover_image_path`, `p_is_featured`, `p_featured_order`, `p_is_published`, `p_publication_status`, `p_reviewed_by_user_id`, `p_reviewed_at`, `p_published_at` | Updates an existing health article |
+| `create_article_comment` | `p_article_id`, `p_user_id`, `p_rating`, `p_comment`, `OUT p_id` | Adds a new user comment to a published article |
 | `update_payment` | `p_id`, `p_status`, `p_paid_at`, `p_reference`, `p_notes` | Updates payment fulfillment details |
-| *(And many more...)* | *Various* | Handles inserts and updates for settings, profiles, comments, Q&As, etc. |
+| `create_audit_log` | `p_actor_user_id`, `p_action`, `p_entity_type`, `p_entity_id`, `p_old_values`, `p_new_values`, `p_meta`, `p_ip_address`, `p_user_agent` | Records a system audit log entry |
 
 ### 10. `pkg_crud_reads` ([`14_pkg_crud_reads.sql`](oracle_plsql/14_pkg_crud_reads.sql))
 
@@ -601,13 +632,64 @@ A centralized package for performing read-only queries and data retrieval. It re
 
 | Procedure | Parameters | Description |
 |---|---|---|
-| `get_paginated_departments` | `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Fetches paginated departments with total counts |
-| `get_doctor_by_id` | `p_doctor_id`, `OUT p_cursor` | Retrieves a single doctor profile and their assigned department details |
-| `get_paginated_patient_appts` | `p_user_id`, `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Retrieves paginated historical and upcoming appointments for a given patient |
-| `get_appt_prescription_items` | `p_appointment_id`, `OUT p_cursor` | Retrieves line items for an appointment's prescription |
-| `get_future_facility_bookings` | `p_room_id`, `OUT p_cursor` | Gets upcoming bookings to avoid overlaps and schedule visually |
-| `get_paginated_inventory_items` | `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Retrieves hospital inventory items with counts |
-| *(And many more...)* | *Various* | Comprehensive lookup logic for all major features in the application |
+| `get_active_departments` | `OUT p_cursor` | Retrieves active departments |
+| `get_active_categories` | `OUT p_cursor` | Retrieves active categories |
+| `get_active_facility_rooms` | `OUT p_cursor` | Retrieves active facility rooms |
+| `get_all_active_doctors` | `OUT p_cursor` | Retrieves all active doctors |
+| `get_ambulance_requests` | `OUT p_cursor` | Retrieves ambulance requests |
+| `get_ambulance_request_by_id` | `p_id`, `OUT p_cursor` | Retrieves ambulance request by id |
+| `get_paginated_medicine_orders` | `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Retrieves paginated medicine orders |
+| `get_medicine_order_by_id` | `p_id`, `OUT p_cursor` | Retrieves medicine order by id |
+| `get_medicine_order_items` | `p_order_id`, `OUT p_cursor` | Retrieves medicine order items |
+| `get_medicine_by_id` | `p_id`, `OUT p_cursor` | Retrieves medicine by id |
+| `get_all_active_medicines` | `OUT p_cursor` | Retrieves all active medicines |
+| `get_paginated_medicines` | `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Retrieves paginated medicines |
+| `get_paginated_qna_questions` | `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Retrieves paginated qna questions |
+| `get_qna_question_by_id` | `p_id`, `OUT p_cursor` | Retrieves qna question by id |
+| `get_qna_answers` | `p_question_id`, `OUT p_cursor` | Retrieves qna answers |
+| `get_admin_staff_users` | `OUT p_cursor` | Retrieves admin staff users |
+| `get_homepage_data` | `OUT p_dept_cursor`, `OUT p_doc_cursor`, `OUT p_art_cursor`, `OUT p_patient_count`, `OUT p_dept_count`, `OUT p_doc_count` | Retrieves homepage data |
+| `get_user_by_email` | `p_email`, `OUT p_cursor` | Retrieves user by email |
+| `get_user_by_id` | `p_id`, `OUT p_cursor` | Retrieves user by id |
+| `get_medicines_by_ids` | `p_ids`, `OUT p_cursor` | Retrieves medicines by ids |
+| `get_prescription_cart_items` | `p_appointment_id`, `OUT p_cursor` | Retrieves prescription cart items |
+| `get_order_cart_items` | `p_order_id`, `OUT p_cursor` | Retrieves order cart items |
+| `get_doctor_by_id` | `p_doctor_id`, `OUT p_cursor` | Retrieves doctor by id |
+| `get_paginated_patient_appts` | `p_user_id`, `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Retrieves paginated patient appts |
+| `get_appointment_payments` | `p_appointment_id`, `OUT p_cursor` | Retrieves appointment payments |
+| `get_appointment_by_id` | `p_appointment_id`, `OUT p_cursor` | Retrieves appointment by id |
+| `get_paginated_doctors` | `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Retrieves paginated doctors |
+| `get_paginated_all_appointments` | `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Retrieves paginated all appointments |
+| `get_recent_patient_appts` | `p_user_id`, `p_limit`, `OUT p_cursor` | Retrieves recent patient appts |
+| `get_appt_prescription_items` | `p_appointment_id`, `OUT p_cursor` | Retrieves appt prescription items |
+| `get_appointment_chat_messages` | `p_appointment_id`, `OUT p_cursor` | Retrieves appointment chat messages |
+| `check_slot_availability` | `p_doctor_id`, `p_scheduled_for`, `p_exclude_id`, `OUT p_count` | Checks availability of a time slot for a doctor |
+| `get_doctor_calendar_summary` | `p_doctor_id`, `OUT p_cursor` | Retrieves doctor calendar summary |
+| `get_article_by_id` | `p_id`, `OUT p_cursor` | Retrieves article by id |
+| `get_article_comments` | `p_article_id`, `OUT p_cursor` | Retrieves article comments |
+| `get_paginated_doctor_articles` | `p_user_id`, `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Retrieves paginated doctor articles |
+| `get_paginated_admin_articles` | `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Retrieves paginated admin articles |
+| `get_active_article_categories` | `OUT p_cursor` | Retrieves active article categories |
+| `get_paginated_payments` | `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Retrieves paginated payments |
+| `get_payment_by_id` | `p_id`, `OUT p_cursor` | Retrieves payment by id |
+| `get_department_by_id` | `p_department_id`, `OUT p_cursor` | Retrieves department by id |
+| `get_paginated_departments` | `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Retrieves paginated departments |
+| `get_paginated_facility_rooms` | `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Retrieves paginated facility rooms |
+| `get_facility_room_by_id` | `p_id`, `OUT p_cursor` | Retrieves facility room by id |
+| `get_all_active_facility_rooms` | `OUT p_cursor` | Retrieves all active facility rooms |
+| `get_all_facility_rooms` | `OUT p_cursor` | Retrieves all facility rooms |
+| `get_future_facility_bookings` | `p_room_id`, `OUT p_cursor` | Retrieves future facility bookings |
+| `get_paginated_inventory_items` | `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Retrieves paginated inventory items |
+| `get_inventory_item_by_id` | `p_id`, `OUT p_cursor` | Retrieves inventory item by id |
+| `get_admin_reports` | `p_start_date`, `p_end_date`, `OUT p_total_appointments`, `OUT p_total_revenue`, `OUT p_medicine_sales` | Retrieves admin reports |
+| `get_doctor_reports` | `p_doctor_id`, `p_start_date`, `p_end_date`, `OUT p_total_appointments`, `OUT p_completed_appointments`, `OUT p_total_revenue` | Retrieves doctor reports |
+| `get_audit_log_entity_types` | `OUT p_cursor` | Retrieves audit log entity types |
+| `get_staff_dashboard_stats` | `OUT p_pending_appointments`, `OUT p_today_appointments`, `OUT p_doctor_count`, `OUT p_published_articles`, `OUT p_pending_ambulance` | Retrieves staff dashboard stats |
+| `get_queue_appointments_by_date` | `p_date`, `OUT p_cursor` | Retrieves queue appointments by date |
+| `get_doctor_by_doc_id` | `p_id`, `OUT p_cursor` | Retrieves doctor by doc id |
+| `get_patient_profile` | `p_user_id`, `OUT p_cursor` | Retrieves patient profile |
+| `get_doctor_by_user_id` | `p_user_id`, `OUT p_cursor` | Retrieves doctor by user id |
+| `get_user_medicine_orders` | `p_user_id`, `OUT p_cursor` | Retrieves user medicine orders |
 
 ### Package Design Philosophy
 
@@ -822,39 +904,25 @@ sqlplus -s hellomed/password123 @run_all.sql
 
 ### Seed Data (`07_seed_data.sql`)
 
-The seed script inserts a minimal but functional dataset so you can immediately test all PL/SQL packages and the web application. Below is the complete breakdown of every record it creates:
+The seed script inserts a massive, real-world dataset directly migrated from the previous system's CSV exports. 
 
-**Users** — one account per role for testing the full RBAC system:
+The file `oracle_plsql/07_seed_data.sql` is automatically generated by a Python script (`scripts/database_seeders/generate_seed.py`). This script reads raw data from four primary CSV files located in `scripts/database_seeders/` (`departments.csv`, `doctors.csv`, `medicines.csv`, and `articles.csv`), handles Oracle-specific data transformations (like `TO_TIMESTAMP`), maps foreign keys, and outputs a complete SQL migration file.
 
+**Data Generation Workflow:**
+1. **Raw Data:** Extracts real records from the CSV files in `scripts/database_seeders/`.
+2. **Python Script (`scripts/database_seeders/generate_seed.py`):** Parses the CSV files, generates required dummy users with securely hashed passwords (`bcrypt`), and constructs `INSERT` statements with proper ordering to satisfy referential integrity.
+3. **Mega SQL File (`07_seed_data.sql`):** Contains hundreds of rows of real-world departments, doctors, medicines, and articles ready for deployment.
+
+**Base Users Generated:**
+Alongside the real data, the script ensures core administrative accounts are created:
 | Name | Email | Role | Password |
 |---|---|---|---|
 | Admin User | `admin@hellomed.test` | `admin` | `password123` |
 | Staff User | `staff@hellomed.test` | `staff` | `password123` |
 | Pharmacist User | `pharmacist@hellomed.test` | `pharmacist` | `password123` |
 | Patient User | `patient@hellomed.test` | `patient` | `password123` |
-| Doctor User | `doctor@hellomed.test` | `doctor` | `password123` |
 
-> ⚠️ **Note:** Passwords are stored as plaintext in the seed script for development convenience only. In production, passwords must be hashed using `bcrypt` or an equivalent algorithm.
-
-**Departments** — two hospital departments with both online and offline service scope:
-
-| Name | Slug | Description | Service Scope |
-|---|---|---|---|
-| Cardiology | `cardiology` | Heart and blood vessel diseases | `both` |
-| Neurology | `neurology` | Disorders of the nervous system | `both` |
-
-**Doctors** — linked to the `doctor` user and the Cardiology department:
-
-| Name | Slug | Specialty | Experience | Fee | Department |
-|---|---|---|---|---|---|
-| Dr. John Doe | `dr-john-doe` | Cardiologist | 10 years | $50.00 | Cardiology |
-
-**Medicines** — two items in the pharmacy catalog:
-
-| Name | Slug | Price | Stock | Requires Prescription |
-|---|---|---|---|---|
-| Paracetamol | `paracetamol` | $5.00 | 1,000 | No |
-| Amoxicillin | `amoxicillin` | $15.00 | 500 | Yes |
+> ⚠️ **Note:** All users and dummy doctor accounts generated by the script are seeded with the password `password123` (properly hashed for Laravel using `bcrypt` directly in the SQL script).
 
 ### 3. Verify the Installation
 If you encounter an `ORA-01017: invalid username/password; logon denied` error when trying to log in directly, ensure you have successfully created the user via the `sysdba` account first (as shown in Step 1).
@@ -910,6 +978,7 @@ Expected output:
 | `ORA-00955: name is already used by an existing object` | Running `01_schema.sql` when tables already exist | Drop the existing tables or drop and recreate the `hellomed` user before re-running setup scripts |
 | `ORA-01017: invalid username/password; logon denied` | The `hellomed` user was not created or password is incorrect | Create the user via `sysdba` as shown in the [Database Setup](#1-create-the-database-user) section |
 | Missing tables in web app | Laravel is not pointing to the correct Oracle instance | Ensure `.env` uses `127.0.0.1:1521/xe` and that OCI8/PDO_OCI drivers are properly installed |
+| SQL Developer extension shows `table or view does not exist` on a table's Data node | The extension session is stale or resolving metadata incorrectly, even though the table exists | Reconnect or refresh the connection, then verify the same session with `SELECT USER FROM dual;` and `SELECT * FROM doctors;` in a worksheet. If the worksheet works, treat the Data node as an extension-side issue |
 | `php_oci8_19.dll` not loading | DLL architecture mismatch (x86 vs x64) or wrong TS/NTS variant | Verify your PHP thread safety with `php -i \| findstr "Thread"` and download the matching DLL |
 | PL/SQL package compilation errors | Insufficient privileges or table creation order | Ensure tables are created first (`01_schema.sql`) and the user has `CREATE PROCEDURE` privilege |
 

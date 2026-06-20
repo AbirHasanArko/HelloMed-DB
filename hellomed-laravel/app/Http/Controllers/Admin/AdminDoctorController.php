@@ -24,20 +24,21 @@ class AdminDoctorController extends Controller
     {
         $validated = $this->validateDoctorPayload($request, true);
 
-        $userId = null;
-        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.create_doctor_user(:name, :email, :password, :user_id); END;", [
+        $userBindings = [
             'name' => $validated['name'],
             'email' => $validated['doctor_email'],
             'password' => Hash::make($validated['initial_password']),
-            'user_id' => &$userId
-        ]);
+            'out_user_id' => null
+        ];
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.create_doctor_user(:name, :email, :password, :user_id); END;", $userBindings);
+        $userId = $userBindings['out_user_id'];
 
         $photoPath = null;
         if ($request->hasFile('photo')) {
             $photoPath = $request->file('photo')->store('doctor-photos', 'public');
         }
 
-        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.create_doctor_profile(:user_id, :department_id, :name, :specialty, :qualification, :experience_years, :consultation_fee, :about, :online_available_days, :offline_available_days, :available_days, :slot_minutes, :is_active, :is_featured, :featured_order, :photo_path, :online_available, :offline_available, :doctor_id); END;", [
+        $profileBindings = [
             'user_id' => $userId,
             'department_id' => $validated['department_id'],
             'name' => $validated['name'],
@@ -56,8 +57,9 @@ class AdminDoctorController extends Controller
             'photo_path' => $photoPath,
             'online_available' => $request->boolean('online_available') ? 1 : 0,
             'offline_available' => $request->boolean('offline_available') ? 1 : 0,
-            'doctor_id' => null
-        ]);
+            'out_doctor_id' => null
+        ];
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.create_doctor_profile(:user_id, :department_id, :name, :specialty, :qualification, :experience_years, :consultation_fee, :about, :online_available_days, :offline_available_days, :available_days, :slot_minutes, :is_active, :is_featured, :featured_order, :photo_path, :online_available, :offline_available, :doctor_id); END;", $profileBindings);
 
         $doctorUser = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $userId], \App\Models\User::class)->first();
 
@@ -124,7 +126,7 @@ class AdminDoctorController extends Controller
             $photoPath = $request->file('photo')->store('doctor-photos', 'public');
         }
 
-        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_doctor_profile(:id, :department_id, :specialty, :qualification, :experience_years, :consultation_fee, :about, :online_available_days, :offline_available_days, :slot_minutes, :is_active, :is_featured, :featured_order, :photo_path); END;", [
+        $profileBindings = [
             'id' => $doctor->id,
             'department_id' => $validated['department_id'],
             'specialty' => $validated['specialty'],
@@ -139,9 +141,10 @@ class AdminDoctorController extends Controller
             'is_featured' => $request->boolean('is_featured', false) ? 1 : 0,
             'featured_order' => $request->integer('featured_order', 0),
             'photo_path' => $photoPath
-        ]);
+        ];
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_doctor_profile(:id, :department_id, :specialty, :qualification, :experience_years, :consultation_fee, :about, :online_available_days, :offline_available_days, :slot_minutes, :is_active, :is_featured, :featured_order, :photo_path); END;", $profileBindings);
         
-        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_doctor_schedule(:id, :clinic_address, :slot_minutes, :online_available, :offline_available, :online_available_days, :online_available_from, :online_available_to, :offline_available_days, :offline_available_from, :offline_available_to, :available_days, :available_from, :available_to); END;", [
+        $scheduleBindings = [
             'id' => $doctor->id,
             'clinic_address' => $validated['clinic_address'] ?? null,
             'slot_minutes' => $validated['slot_minutes'],
@@ -156,13 +159,21 @@ class AdminDoctorController extends Controller
             'available_days' => json_encode($request->input('available_days', [])),
             'available_from' => $validated['available_from'] ?? null,
             'available_to' => $validated['available_to'] ?? null,
-        ]);
+        ];
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.update_doctor_schedule(:id, :clinic_address, :slot_minutes, :online_available, :offline_available, :online_available_days, :online_available_from, :online_available_to, :offline_available_days, :offline_available_from, :offline_available_to, :available_days, :available_from, :available_to); END;", $scheduleBindings);
 
         return redirect()->route('admin.doctors.index')->with('status', 'Doctor schedule updated.');
     }
 
     private function validateDoctorPayload(Request $request, bool $isCreate, ?Doctor $doctor = null): array
     {
+        $timeFields = ['available_from', 'available_to', 'online_available_from', 'online_available_to', 'offline_available_from', 'offline_available_to'];
+        foreach ($timeFields as $field) {
+            if ($request->filled($field)) {
+                $request->merge([$field => substr($request->input($field), 0, 5)]);
+            }
+        }
+
         $rules = [
             'department_id' => ['required', 'exists:departments,id'],
             'name' => ['required', 'string', 'max:255'],

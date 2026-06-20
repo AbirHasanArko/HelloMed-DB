@@ -1,0 +1,10 @@
+id,name,slug,description,image_path,service_scope,is_active,created_at,updated_at,is_featured,featured_order
+1,Cardiology,cardiology,"Heart care and cardiovascular treatment.",departments/cardiology.png,"online and offline",1,"2026-05-26 17:18:21","2026-05-26 17:18:21",0,0
+2,Orthopedics,orthopedics,"Bone, joint, muscle, and mobility care.",departments/orthopedics.png,"offline and online booking",1,"2026-05-26 17:18:21","2026-05-26 17:18:21",0,0
+3,Dental,dental,"Oral health, surgery, and preventive treatment.",departments/dental.png,"offline and online booking",1,"2026-05-26 17:18:21","2026-05-26 17:18:21",0,0
+4,Psychiatry,psychiatry,"Mental health evaluation and therapy support.",departments/psychiatry.png,"online and offline",1,"2026-05-26 17:18:21","2026-05-27 17:35:27",1,2
+5,Neurology,neurology,"Brain, spinal cord, and nervous system disorders.",departments/neurology.png,"online and offline",1,"2026-05-26 17:18:21","2026-05-26 17:18:21",0,0
+6,Pediatrics,pediatrics,"Specialized medical care for infants, children, and adolescents.",departments/pediatrics.png,"offline and online booking",1,"2026-05-26 17:18:21","2026-05-26 17:18:21",0,0
+7,Dermatology,dermatology,"Skin, hair, and nail health and treatments.",departments/dermatology.png,"online and offline",1,"2026-05-26 17:18:21","2026-05-26 17:18:21",0,0
+8,Oncology,oncology,"Comprehensive cancer care and chemotherapy.",departments/oncology.png,"offline booking",1,"2026-05-26 17:18:21","2026-05-26 17:18:21",0,0
+9,"Nutrition and Dietetics",nutrition-and-dietetics,"Personalized nutrition and dietary guidance to support recovery, manage chronic conditions, and promote lifelong health.",department-images/sEO4m9XSYg4XlAkOzegnpC1ifkJVMGDxceFjVlG6.png,"online and offline",1,"2026-05-27 05:13:02","2026-05-27 17:35:21",1,1

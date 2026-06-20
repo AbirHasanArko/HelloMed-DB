@@ -11,7 +11,7 @@
                     Department
                     <select name="department_id" required>
                         @foreach ($departments as $department)
-                            <option value="{{ $department->id }}" @selected($doctor->department_id === $department->id)>{{ $department->name }}</option>
+                            <option value="{{ $department->id }}" @selected(old('department_id', $doctor->department_id) == $department->id)>{{ $department->name }}</option>
                         @endforeach
                     </select>
                 </label>

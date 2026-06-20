@@ -65,9 +65,8 @@ class ArticleController extends Controller
         return view('articles.index', compact('articles'));
     }
 
-    public function show($id)
+    public function show(\App\Models\Article $article)
     {
-        $article = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_article_by_id(:id, :cursor); END;", ['id' => $id], \App\Models\Article::class)->firstOrFail();
         abort_unless($article->is_published, 404);
 
         $category = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_active_article_categories(:cursor); END;", [], \App\Models\ArticleCategory::class)->where('id', $article->category_id)->first();
