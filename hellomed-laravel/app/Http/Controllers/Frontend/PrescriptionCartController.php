@@ -12,8 +12,8 @@ class PrescriptionCartController extends Controller
     {
         $this->authorize('view', $appointment);
 
-        $items = $appointment->prescriptionItems()->with('medicine')->get();
-        if ($items->isEmpty()) {
+        $items = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_prescription_cart_items(:appointment_id, :cursor); END;", ['appointment_id' => $appointment->id], \App\Models\PrescriptionItem::class);
+        if (count($items) === 0) {
             return back()->withErrors(['prescription' => 'No prescribed medicines found for this appointment.']);
         }
 

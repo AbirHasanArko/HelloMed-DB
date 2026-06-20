@@ -13,13 +13,49 @@ use App\Support\NotificationService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Http\Request;
 
 class AppointmentController extends Controller
 {
     public function create($doctor)
     {
-        $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_by_id(:id, :cursor); END;", ['id' => $doctor], \App\Models\Doctor::class)->firstOrFail();
-        return view('appointments.create', compact('doctor'));
+        $pdo = \Illuminate\Support\Facades\DB::getPdo();
+        $stmt = $pdo->prepare('
+            BEGIN
+                OPEN :cursor FOR
+                    SELECT d.*, u.name as user_name, u.email, dept.name as department_name 
+                    FROM doctors d
+                    JOIN users u ON d.user_id = u.id
+                    JOIN departments dept ON d.department_id = dept.id
+                    WHERE d.slug = :slug;
+            END;
+        ');
+        $stmt->bindParam(':slug', $doctor);
+        $cursor = null;
+        $stmt->bindParam(':cursor', $cursor, \PDO::PARAM_STMT);
+        $stmt->execute();
+        oci_execute($cursor);
+        
+        $row = oci_fetch_assoc($cursor);
+        abort_unless($row, 404);
+        
+        $lowerRow = [];
+        foreach ($row as $k => $v) {
+            if (is_object($v) && (get_class($v) === 'OCILob' || get_class($v) === 'OCI-Lob' || method_exists($v, 'load'))) {
+                $v = $v->load();
+            }
+            $lowerRow[strtolower($k)] = $v;
+        }
+        oci_free_statement($cursor);
+        
+        $hydratedDoctor = \App\Models\Doctor::hydrate([$lowerRow])->first();
+        $department = new \App\Models\Department();
+        $department->name = $hydratedDoctor->department_name;
+        $department->id = $hydratedDoctor->department_id;
+        $hydratedDoctor->setRelation('department', $department);
+        $hydratedDoctor->name = $hydratedDoctor->user_name;
+
+        return view('appointments.create', ['doctor' => $hydratedDoctor]);
     }
 
     public function store(StoreAppointmentRequest $request)

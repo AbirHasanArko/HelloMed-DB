@@ -31,7 +31,7 @@ class AdminPaymentController extends Controller
             if ($payment->payable_type === \App\Models\Appointment::class) {
                 $appointment = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_by_id(:id, :cursor); END;", ['id' => $payment->payable_id], \App\Models\Appointment::class)->first();
                 if ($appointment) {
-                    $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_profile_by_doctor_id(:id, :cursor); END;", ['id' => $appointment->doctor_id], \App\Models\DoctorProfile::class)->first();
+                    $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_by_doc_id(:id, :cursor); END;", ['id' => $appointment->doctor_id], \App\Models\Doctor::class)->first();
                     if ($doctor) {
                         $doctorUser = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $doctor->user_id], \App\Models\User::class)->first();
                         $doctor->setRelation('user', $doctorUser);

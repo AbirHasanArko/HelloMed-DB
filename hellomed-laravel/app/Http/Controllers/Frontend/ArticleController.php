@@ -48,7 +48,7 @@ class ArticleController extends Controller
 
             $author = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $article->user_id], \App\Models\User::class)->first();
             if ($author) {
-                $authorProfile = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_profile(:user_id, :cursor); END;", ['user_id' => $author->id], \App\Models\DoctorProfile::class)->first();
+                $authorProfile = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_by_user_id(:user_id, :cursor); END;", ['user_id' => $author->id], \App\Models\Doctor::class)->first();
                 $author->setRelation('doctorProfile', $authorProfile);
             }
             $article->setRelation('author', $author);
@@ -75,7 +75,7 @@ class ArticleController extends Controller
 
         $author = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $article->user_id], \App\Models\User::class)->first();
         if ($author) {
-            $authorProfile = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_profile(:user_id, :cursor); END;", ['user_id' => $author->id], \App\Models\DoctorProfile::class)->first();
+            $authorProfile = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_by_user_id(:user_id, :cursor); END;", ['user_id' => $author->id], \App\Models\Doctor::class)->first();
             $author->setRelation('doctorProfile', $authorProfile);
         }
         $article->setRelation('author', $author);

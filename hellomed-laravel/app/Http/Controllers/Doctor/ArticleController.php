@@ -9,6 +9,7 @@ use App\Models\ArticleCategory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Illuminate\Http\Request;
 
 class ArticleController extends Controller
 {

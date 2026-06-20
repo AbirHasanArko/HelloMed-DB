@@ -47,4 +47,21 @@ class AmbulanceController extends Controller
 
         return back()->with('success', 'Ambulance request updated successfully.');
     }
+
+    public function dispatchRequest($id)
+    {
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_ambulance.dispatch_ambulance(:request_id, :staff_id); END;", [
+            'request_id' => $id,
+            'staff_id' => auth()->id()
+        ]);
+        return back()->with('success', 'Ambulance dispatched successfully.');
+    }
+
+    public function resolveRequest($id)
+    {
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_ambulance.resolve_request(:request_id); END;", [
+            'request_id' => $id
+        ]);
+        return back()->with('success', 'Ambulance request resolved successfully.');
+    }
 }

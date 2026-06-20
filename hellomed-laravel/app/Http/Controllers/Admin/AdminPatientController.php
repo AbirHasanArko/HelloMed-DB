@@ -55,7 +55,7 @@ class AdminPatientController extends Controller
         $appointments = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_recent_patient_appts(:user_id, :limit, :cursor); END;", ['user_id' => $patient->id, 'limit' => 10], \App\Models\Appointment::class);
         
         foreach ($appointments as $appointment) {
-            $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_profile_by_doctor_id(:id, :cursor); END;", ['id' => $appointment->doctor_id], \App\Models\DoctorProfile::class)->first();
+            $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_by_doc_id(:id, :cursor); END;", ['id' => $appointment->doctor_id], \App\Models\Doctor::class)->first();
             if ($doctor) {
                 $doctorUser = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $doctor->user_id], \App\Models\User::class)->first();
                 $doctor->setRelation('user', $doctorUser);

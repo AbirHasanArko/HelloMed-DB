@@ -204,6 +204,11 @@ CREATE OR REPLACE PACKAGE pkg_crud_writes AS
         p_password IN VARCHAR2
     );
 
+    PROCEDURE update_user_password(
+        p_user_id IN NUMBER,
+        p_password IN VARCHAR2
+    );
+
     PROCEDURE create_patient_user(
         p_name IN VARCHAR2,
         p_email IN VARCHAR2,
@@ -1137,6 +1142,17 @@ CREATE OR REPLACE PACKAGE BODY pkg_crud_writes AS
         );
         COMMIT;
     END create_audit_log;
+
+    PROCEDURE update_user_password(
+        p_user_id IN NUMBER,
+        p_password IN VARCHAR2
+    ) IS
+    BEGIN
+        UPDATE users
+        SET password = p_password
+        WHERE id = p_user_id;
+        COMMIT;
+    END update_user_password;
 
 END pkg_crud_writes;
 /

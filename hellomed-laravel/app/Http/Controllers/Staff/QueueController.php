@@ -16,7 +16,7 @@ class QueueController extends Controller
         $appointments = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_queue_appointments_by_date(:date_str, :cursor); END;", ['date_str' => $date], \App\Models\Appointment::class);
             
         foreach ($appointments as $appointment) {
-            $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_profile_by_doctor_id(:id, :cursor); END;", ['id' => $appointment->doctor_id], \App\Models\Doctor::class)->first();
+            $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_by_doc_id(:id, :cursor); END;", ['id' => $appointment->doctor_id], \App\Models\Doctor::class)->first();
             $user = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $appointment->user_id], \App\Models\User::class)->first();
             
             if ($doctor) {

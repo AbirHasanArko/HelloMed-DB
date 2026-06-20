@@ -56,16 +56,29 @@
                         @endif
                     </td>
                     <td>
-                        <form method="POST" action="{{ route('staff.ambulance.update', $req) }}" style="display:flex; gap:8px;">
-                            @csrf
-                            @method('PATCH')
-                            <select name="status" style="width:auto; padding: 4px 8px; margin:0;" onchange="this.form.submit()">
-                                <option value="pending" @selected($req->status === 'pending')>Pending</option>
-                                <option value="dispatched" @selected($req->status === 'dispatched')>Dispatched</option>
-                                <option value="resolved" @selected($req->status === 'resolved')>Resolved</option>
-                                <option value="cancelled" @selected($req->status === 'cancelled')>Cancelled</option>
-                            </select>
-                        </form>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <form method="POST" action="{{ route('staff.ambulance.update', $req) }}" style="display:flex;">
+                                @csrf
+                                @method('PATCH')
+                                <select name="status" style="width:auto; padding: 4px 8px; margin:0;" onchange="this.form.submit()">
+                                    <option value="pending" @selected($req->status === 'pending')>Pending</option>
+                                    <option value="dispatched" @selected($req->status === 'dispatched')>Dispatched</option>
+                                    <option value="resolved" @selected($req->status === 'resolved')>Resolved</option>
+                                    <option value="cancelled" @selected($req->status === 'cancelled')>Cancelled</option>
+                                </select>
+                            </form>
+                            @if($req->status === 'pending')
+                            <form method="POST" action="{{ route('staff.ambulance.dispatch', $req) }}">
+                                @csrf
+                                <button type="submit" class="button" style="padding: 4px 8px; font-size: 0.85rem;">Dispatch</button>
+                            </form>
+                            @elseif($req->status === 'dispatched')
+                            <form method="POST" action="{{ route('staff.ambulance.resolve', $req) }}">
+                                @csrf
+                                <button type="submit" class="button" style="padding: 4px 8px; font-size: 0.85rem; background: var(--success); border-color: var(--success);">Resolve</button>
+                            </form>
+                            @endif
+                        </div>
                     </td>
                 </tr>
                 @empty

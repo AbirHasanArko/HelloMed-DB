@@ -32,10 +32,17 @@ class OrderController extends Controller
             $user = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_user_by_id(:id, :cursor); END;", ['id' => $order->user_id], \App\Models\User::class)->first();
             $order->setRelation('user', $user);
             
-            $items = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_medicine_order_items(:order_id, :cursor); END;", ['order_id' => $order->id], \App\Models\MedicineOrderItem::class);
+            $items = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_order_cart_items(:order_id, :cursor); END;", ['order_id' => $order->id], \App\Models\MedicineOrderItem::class);
             foreach ($items as $item) {
-                $medicine = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_medicine_by_id(:id, :cursor); END;", ['id' => $item->medicine_id], \App\Models\Medicine::class)->first();
-                $item->setRelation('medicine', $medicine);
+                if ($item->medicine_id) {
+                    $med = new \App\Models\Medicine([
+                        'id' => $item->medicine_id,
+                        'name' => $item->medicine_name,
+                        'price' => $item->medicine_price,
+                        'image_path' => $item->image_path,
+                    ]);
+                    $item->setRelation('medicine', $med);
+                }
             }
             $order->setRelation('items', $items);
         }

@@ -8,6 +8,7 @@ use App\Models\ArticleCategory;
 use App\Http\Requests\StoreArticleRequest;
 use App\Support\AuditLogger;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\Request;
 
 class AdminArticleController extends Controller
 {

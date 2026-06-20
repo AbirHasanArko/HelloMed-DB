@@ -14,7 +14,7 @@ class PatientDashboardController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
-        $profile = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_patient_profile(:user_id, :cursor); END;", ['user_id' => $user->id], \App\Models\PatientProfile::class)->first();
+        $profile = \App\Helpers\OracleHelper::fetchCursor("BEGIN OPEN :cursor FOR SELECT * FROM patient_profiles WHERE user_id = :user_id; END;", ['user_id' => $user->id], \App\Models\PatientProfile::class)->first();
 
         $page = $request->get('page', 1);
         $perPage = 15;
@@ -66,10 +66,16 @@ class PatientDashboardController extends Controller
         $payments = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_payments(:appointment_id, :cursor); END;", ['appointment_id' => $appointment->id], \App\Models\Payment::class);
         $appointment->setRelation('payments', $payments);
         
-        $prescriptionItems = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appt_prescription_items(:appointment_id, :cursor); END;", ['appointment_id' => $appointment->id], \App\Models\PrescriptionItem::class);
+        $prescriptionItems = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_prescription_cart_items(:appointment_id, :cursor); END;", ['appointment_id' => $appointment->id], \App\Models\PrescriptionItem::class);
         foreach ($prescriptionItems as $item) {
-            $medicine = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_medicine_by_id(:id, :cursor); END;", ['id' => $item->medicine_id], \App\Models\Medicine::class)->first();
-            $item->setRelation('medicine', $medicine);
+            if ($item->medicine_id) {
+                $med = new \App\Models\Medicine([
+                    'id' => $item->medicine_id,
+                    'name' => $item->medicine_name,
+                    'price' => $item->medicine_price,
+                ]);
+                $item->setRelation('medicine', $med);
+            }
         }
         $appointment->setRelation('prescriptionItems', $prescriptionItems);
         

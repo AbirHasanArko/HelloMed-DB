@@ -31,7 +31,7 @@ class HomeController extends Controller
 
         $stmt->execute();
         
-        $fetchCursor = function($cursor) {
+        $fetchCursor = function($cursor, $modelClass) {
             oci_execute($cursor);
             $results = [];
             while ($row = oci_fetch_assoc($cursor)) {
@@ -42,16 +42,16 @@ class HomeController extends Controller
                     }
                     $lowercaseRow[strtolower($k)] = $v;
                 }
-                $results[] = (object) $lowercaseRow;
+                $results[] = $lowercaseRow;
             }
             oci_free_statement($cursor);
-            return collect($results);
+            return $modelClass::hydrate($results);
         };
 
         return view('public.home', [
-            'departments' => $fetchCursor($deptCursor),
-            'doctors' => $fetchCursor($docCursor),
-            'articles' => $fetchCursor($artCursor),
+            'departments' => $fetchCursor($deptCursor, \App\Models\Department::class),
+            'doctors' => $fetchCursor($docCursor, \App\Models\Doctor::class),
+            'articles' => $fetchCursor($artCursor, \App\Models\Article::class),
             'patientCount' => $patientCount,
             'totalDepartments' => $deptCount,
             'totalDoctors' => $docCount,

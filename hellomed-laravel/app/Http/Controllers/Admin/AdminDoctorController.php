@@ -16,7 +16,7 @@ class AdminDoctorController extends Controller
     public function create()
     {
         return view('admin.doctors.create', [
-            'departments' => collect(\App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_all_active_departments(:cursor); END;", [], \App\Models\Department::class)),
+            'departments' => collect(\App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_active_departments(:cursor); END;", [], \App\Models\Department::class)),
         ]);
     }
 
@@ -100,18 +100,18 @@ class AdminDoctorController extends Controller
 
     public function edit($id)
     {
-        $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_profile_by_doctor_id(:id, :cursor); END;", ['id' => $id], \App\Models\Doctor::class)->firstOrFail();
+        $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_by_doc_id(:id, :cursor); END;", ['id' => $id], \App\Models\Doctor::class)->firstOrFail();
         $this->authorize('update', $doctor);
 
         return view('admin.doctors.edit', [
             'doctor' => $doctor,
-            'departments' => collect(\App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_all_active_departments(:cursor); END;", [], \App\Models\Department::class)),
+            'departments' => collect(\App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_active_departments(:cursor); END;", [], \App\Models\Department::class)),
         ]);
     }
 
     public function update(Request $request, $id)
     {
-        $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_profile_by_doctor_id(:id, :cursor); END;", ['id' => $id], \App\Models\Doctor::class)->firstOrFail();
+        $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_by_doc_id(:id, :cursor); END;", ['id' => $id], \App\Models\Doctor::class)->firstOrFail();
         $this->authorize('update', $doctor);
 
         $validated = $this->validateDoctorPayload($request, false, $doctor);

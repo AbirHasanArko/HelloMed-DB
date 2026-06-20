@@ -118,7 +118,7 @@ class OfflineAppointmentController extends Controller
                 'id' => $appointmentId,
                 'status' => 'confirmed'
             ];
-            \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_appointments.update_appointment_status(:id, :status); END;", $updateParams);
+            \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_appointments.update_status(:id, :status); END;", $updateParams);
 
             // Fetch appointment to get token number
             $appointment = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_appointment_by_id(:id, :cursor); END;", ['id' => $appointmentId], \App\Models\Appointment::class)->first();

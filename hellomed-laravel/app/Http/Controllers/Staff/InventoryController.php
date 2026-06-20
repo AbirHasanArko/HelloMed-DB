@@ -26,7 +26,7 @@ class InventoryController extends Controller
 
         $items = new \Illuminate\Pagination\LengthAwarePaginator($itemsCollection, $total, $perPage, $page, ['path' => $request->url()]);
 
-        $alerts = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_inventory.get_inventory_alerts(:cursor); END;");
+        $alerts = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_inventory.get_inventory_alerts(:threshold, :cursor); END;", ['threshold' => 10]);
 
         return view('staff.inventory.index', compact('items', 'alerts'));
     }
