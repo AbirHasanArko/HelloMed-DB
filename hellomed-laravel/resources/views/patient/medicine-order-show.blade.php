@@ -16,6 +16,10 @@
         <div class="pill-row" style="margin-top:12px;">
             <a class="ghost-button" href="{{ route('patient.medicine-orders.invoice', $order) }}">Download invoice (PDF)</a>
 
+            @if ($order->status === 'pending')
+                <a class="ghost-button" href="{{ route('patient.medicine-orders.edit', $order) }}">Edit details</a>
+            @endif
+
             @if (in_array($order->payment_method, ['bkash', 'nagad'], true) && $order->payment_status !== 'paid')
                 <a class="button" href="{{ route('shop.payments.start', ['order' => $order, 'provider' => $order->payment_method]) }}">Pay now via {{ strtoupper($order->payment_method) }}</a>
             @endif

@@ -59,6 +59,7 @@ Route::delete('/shop/cart/{medicine}', [MedicineCartController::class, 'remove']
 
 Route::get('/ambulance', [\App\Http\Controllers\Frontend\AmbulanceController::class, 'create'])->name('ambulance.create');
 Route::post('/ambulance', [\App\Http\Controllers\Frontend\AmbulanceController::class, 'store'])->name('ambulance.store');
+Route::get('/facilities', [\App\Http\Controllers\Frontend\FacilityController::class, 'index'])->name('facilities.index');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -117,6 +118,12 @@ Route::get('/my/medicine-orders', [PatientMedicineOrderController::class, 'index
 Route::get('/my/medicine-orders/{order}', [PatientMedicineOrderController::class, 'show'])
     ->middleware('auth')
     ->name('patient.medicine-orders.show');
+Route::get('/my/medicine-orders/{order}/edit', [PatientMedicineOrderController::class, 'edit'])
+    ->middleware('auth')
+    ->name('patient.medicine-orders.edit');
+Route::put('/my/medicine-orders/{order}', [PatientMedicineOrderController::class, 'update'])
+    ->middleware('auth')
+    ->name('patient.medicine-orders.update');
 Route::get('/my/medicine-orders/{order}/invoice', PatientMedicineInvoiceController::class)
     ->middleware('auth')
     ->name('patient.medicine-orders.invoice');
@@ -149,6 +156,8 @@ Route::prefix('staff')
         Route::get('/', [StaffDashboardController::class, 'index'])->name('dashboard');
         Route::get('/ambulance', [\App\Http\Controllers\Staff\AmbulanceController::class, 'index'])->name('ambulance.index');
         Route::patch('/ambulance/{ambulanceRequest}', [\App\Http\Controllers\Staff\AmbulanceController::class, 'update'])->name('ambulance.update');
+        Route::post('/ambulance/{ambulanceRequest}/dispatch', [\App\Http\Controllers\Staff\AmbulanceController::class, 'dispatchRequest'])->name('ambulance.dispatch');
+        Route::post('/ambulance/{ambulanceRequest}/resolve', [\App\Http\Controllers\Staff\AmbulanceController::class, 'resolveRequest'])->name('ambulance.resolve');
         Route::get('/offline-appointments', [\App\Http\Controllers\Staff\OfflineAppointmentController::class, 'create'])->name('offline-appointments.create');
         Route::post('/offline-appointments', [\App\Http\Controllers\Staff\OfflineAppointmentController::class, 'store'])->name('offline-appointments.store');
         Route::get('/inventory', [\App\Http\Controllers\Staff\InventoryController::class, 'index'])->name('inventory.index');
@@ -191,6 +200,7 @@ Route::prefix('admin')
     ->group(function (): void {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/financial', [\App\Http\Controllers\Admin\ReportController::class, 'financial'])->name('reports.financial');
         Route::get('/patients', [\App\Http\Controllers\Admin\AdminPatientController::class, 'index'])->name('patients.index');
         Route::get('/patients/{patient}', [\App\Http\Controllers\Admin\AdminPatientController::class, 'show'])->name('patients.show');
         Route::get('/appointments', [AdminAppointmentController::class, 'index'])->name('appointments.index');
