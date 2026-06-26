@@ -77,17 +77,22 @@ class AdminDoctorController extends Controller
     {
         $this->authorize('viewAny', Doctor::class);
 
+        $search = $request->get('search');
+        $departmentId = $request->get('department_id');
+
         $page = $request->get('page', 1);
         $perPage = 15;
         $offset = ($page - 1) * $perPage;
 
         $params = [
+            'search' => $search,
+            'department_id' => $departmentId,
             'limit' => $perPage,
             'offset' => $offset,
             'out_total' => null
         ];
 
-        $doctorsCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_paginated_doctors(:limit, :offset, :total, :cursor); END;", $params, \App\Models\Doctor::class);
+        $doctorsCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_filters.filter_admin_doctors(:search, :department_id, :limit, :offset, :total, :cursor); END;", $params, \App\Models\Doctor::class);
         $total = \App\Helpers\OracleHelper::$lastOutParams['out_total'];
 
         foreach ($doctorsCollection as $doctor) {
@@ -95,11 +100,24 @@ class AdminDoctorController extends Controller
             $doctor->setRelation('department', $department);
         }
 
-        $doctors = new \Illuminate\Pagination\LengthAwarePaginator($doctorsCollection, $total, $perPage, $page, ['path' => $request->url()]);
+        $doctors = new \Illuminate\Pagination\LengthAwarePaginator($doctorsCollection, $total, $perPage, $page, ['path' => $request->url(), 'query' => $request->query()]);
+
+        $departments = collect(\App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_active_departments(:cursor); END;", [], \App\Models\Department::class));
 
         return view('admin.doctors.index', [
             'doctors' => $doctors,
+            'departments' => $departments,
         ]);
+    }
+
+    public function destroy($id)
+    {
+        $doctor = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_crud_reads.get_doctor_by_doc_id(:id, :cursor); END;", ['id' => $id], \App\Models\Doctor::class)->firstOrFail();
+        $this->authorize('delete', $doctor);
+
+        \App\Helpers\OracleHelper::executeProcedure("BEGIN pkg_crud_writes.delete_doctor(:id); END;", ['id' => $id]);
+
+        return redirect()->route('admin.doctors.index')->with('status', 'Doctor deleted successfully.');
     }
 
     public function edit($id)

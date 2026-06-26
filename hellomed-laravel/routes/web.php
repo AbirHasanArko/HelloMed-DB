@@ -221,6 +221,7 @@ Route::prefix('admin')
         Route::post('/doctors', [AdminDoctorController::class, 'store'])->name('doctors.store');
         Route::get('/doctors/{doctor}/edit', [AdminDoctorController::class, 'edit'])->name('doctors.edit');
         Route::put('/doctors/{doctor}', [AdminDoctorController::class, 'update'])->name('doctors.update');
+        Route::delete('/doctors/{doctor}', [AdminDoctorController::class, 'destroy'])->name('doctors.destroy');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
         Route::get('/audit-logs/export', [AuditLogController::class, 'export'])->name('audit-logs.export');
         

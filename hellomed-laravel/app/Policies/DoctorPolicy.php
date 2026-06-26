@@ -16,4 +16,9 @@ class DoctorPolicy
     {
         return $user->isAdminOrStaff();
     }
+
+    public function delete(User $user, Doctor $doctor): bool
+    {
+        return $user->isAdminOrStaff();
+    }
 }

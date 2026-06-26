@@ -89,6 +89,10 @@ CREATE OR REPLACE PACKAGE pkg_crud_writes AS
         p_photo_path IN VARCHAR2
     );
 
+    PROCEDURE delete_doctor(
+        p_id IN NUMBER
+    );
+
     -- Facility Rooms
     PROCEDURE create_facility_room(
         p_room_number IN VARCHAR2,
@@ -787,6 +791,19 @@ CREATE OR REPLACE PACKAGE BODY pkg_crud_writes AS
         WHERE id = p_id;
         COMMIT;
     END update_doctor_profile;
+
+    PROCEDURE delete_doctor(
+        p_id IN NUMBER
+    ) IS
+        v_user_id NUMBER;
+    BEGIN
+        SELECT user_id INTO v_user_id FROM doctors WHERE id = p_id;
+        DELETE FROM doctors WHERE id = p_id;
+        IF v_user_id IS NOT NULL THEN
+            DELETE FROM users WHERE id = v_user_id AND role = 'doctor';
+        END IF;
+        COMMIT;
+    END delete_doctor;
 
     -- Facility Rooms
     PROCEDURE create_facility_room(

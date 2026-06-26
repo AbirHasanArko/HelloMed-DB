@@ -58,6 +58,15 @@ CREATE OR REPLACE PACKAGE pkg_filters AS
         p_total OUT NUMBER,
         p_cursor OUT SYS_REFCURSOR
     );
+
+    PROCEDURE filter_admin_doctors(
+        p_search IN VARCHAR2,
+        p_department_id IN NUMBER,
+        p_limit IN NUMBER,
+        p_offset IN NUMBER,
+        p_total OUT NUMBER,
+        p_cursor OUT SYS_REFCURSOR
+    );
 END pkg_filters;
 /
 
@@ -254,5 +263,32 @@ CREATE OR REPLACE PACKAGE BODY pkg_filters AS
             ) a WHERE ROWNUM <= NVL(p_offset, 0) + NVL(p_limit, 1000000)
         ) WHERE rnum > NVL(p_offset, 0);
     END filter_articles;
+
+    PROCEDURE filter_admin_doctors(
+        p_search IN VARCHAR2,
+        p_department_id IN NUMBER,
+        p_limit IN NUMBER,
+        p_offset IN NUMBER,
+        p_total OUT NUMBER,
+        p_cursor OUT SYS_REFCURSOR
+    ) IS
+    BEGIN
+        SELECT COUNT(*) INTO p_total
+        FROM doctors d
+        WHERE (p_search IS NULL OR LOWER(d.name) LIKE '%' || LOWER(p_search) || '%')
+          AND (p_department_id IS NULL OR d.department_id = p_department_id);
+
+        OPEN p_cursor FOR
+        SELECT * FROM (
+            SELECT a.*, ROWNUM rnum FROM (
+                SELECT d.*
+                FROM doctors d
+                WHERE (p_search IS NULL OR LOWER(d.name) LIKE '%' || LOWER(p_search) || '%')
+                  AND (p_department_id IS NULL OR d.department_id = p_department_id)
+                ORDER BY d.created_at DESC
+            ) a WHERE ROWNUM <= NVL(p_offset, 0) + NVL(p_limit, 1000000)
+        ) WHERE rnum > NVL(p_offset, 0);
+    END filter_admin_doctors;
+
 END pkg_filters;
 /
