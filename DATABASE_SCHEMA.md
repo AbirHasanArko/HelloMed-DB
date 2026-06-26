@@ -419,20 +419,8 @@ This document provides a formal, Data Dictionary-style specification of the Hell
 
 ---
 
-## 17. `AMBULANCES` & `AMBULANCE_REQUESTS`
+## 17. `AMBULANCE_REQUESTS`
 **Description:** Emergency dispatch module.
-
-### `AMBULANCES`
-| Column Name | Data Type | Nullable | Default | Constraints / Keys |
-|---|---|---|---|---|
-| `ID` | `NUMBER` | No | | **PK** |
-| `VEHICLE_NUMBER`| `VARCHAR2(255)` | No | | **UNIQUE** |
-| `DRIVER_NAME` | `VARCHAR2(255)` | Yes | | |
-| `DRIVER_PHONE` | `VARCHAR2(255)` | Yes | | |
-| `TYPE` | `VARCHAR2(50)` | No | `'basic'`| `CHECK (type IN ('basic', 'advanced', 'icu'))` |
-| `STATUS` | `VARCHAR2(50)` | No | `'available'`| `CHECK (status IN ('available', 'dispatched', 'maintenance'))` |
-| `CREATED_AT` | `TIMESTAMP` | Yes | | |
-| `UPDATED_AT` | `TIMESTAMP` | Yes | | |
 
 ### `AMBULANCE_REQUESTS`
 | Column Name | Data Type | Nullable | Default | Constraints / Keys |

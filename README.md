@@ -1,7 +1,7 @@
 <div align="center">
   <h1>🏥 HelloMed Database Architecture</h1>
   <p><b>A Comprehensive Oracle PL/SQL Schema for Hospital Management</b></p>
-  <p><i>24 relational tables · 8 PL/SQL packages · 24 sequences & triggers · Full seed data</i></p>
+  <p><i>25 relational tables · 10 PL/SQL packages · 24 sequences & triggers · Full seed data</i></p>
 
   [![Oracle](https://img.shields.io/badge/Oracle-19c-F80000?style=for-the-badge&logo=oracle&logoColor=white)](https://oracle.com)
   [![PL/SQL](https://img.shields.io/badge/PL/SQL-Packages-00758F?style=for-the-badge)](https://oracle.com)
@@ -93,11 +93,11 @@ All core logic, tables, sequences, triggers, and data manipulation rules are def
 | Metric | Value |
 |---|---|
 | **DBMS** | Oracle Database 19c (11g compatible) |
-| **Tables** | 24 relational tables |
+| **Tables** | 25 relational tables |
 | **Sequences** | 24 auto-increment sequences |
 | **Triggers** | 24 BEFORE INSERT triggers |
 | **PL/SQL Packages** | 10 (Users, Appointments, Pharmacy, Ambulance, Facilities, Inventory, Search, Filters, CRUD Writes, CRUD Reads) |
-| **Stored Procedures** | 124 across all packages |
+| **Stored Procedures** | ~130 across all packages |
 | **Indexes** | 7 performance-optimized indexes |
 | **Frontend** | Laravel 11 via OCI8 bridge |
 
@@ -108,11 +108,11 @@ To give an idea of the depth of the PL/SQL implementation, here are some raw cod
 | PL/SQL Construct | Count | Notes |
 |---|---|---|
 | **Packages** | 10 | Modularized business logic wrappers |
-| **Procedures** | 124 | Distinct callable stored procedures |
+| **Procedures** | ~130 | Distinct callable stored procedures |
 | **Functions** | 0 | Business logic encapsulated within procedures |
 | **Triggers** | 24 | `BEFORE INSERT` auto-increment & timestamp triggers |
-| **IF / ELSIF / ELSE** | ~125 | Conditional branching for business rules |
-| **SYS_REFCURSOR** | 174 | Procedures returning dynamic result sets to Laravel |
+| **IF / ELSIF / ELSE** | ~130 | Conditional branching for business rules |
+| **SYS_REFCURSOR** | ~130 | Procedures returning dynamic result sets to Laravel |
 | **COMMIT / ROLLBACK** | 19 | Explicit transaction control blocks |
 | **EXCEPTION** | 1 | Structured error handling block |
 | **Loops** | 4 | Highly optimized set-based SQL; minimal `WHILE/FOR` cursor loops used! |
@@ -294,7 +294,7 @@ The database is designed to handle all daily operations of a hospital, organized
 ### Complete Table Inventory
 
 <details>
-<summary><b>Click to expand — All 24 tables with column counts and storage types</b></summary>
+<summary><b>Click to expand — All 25 tables with column counts and storage types</b></summary>
 
 | # | Table Name | Columns | Key Data Types | Foreign Keys |
 |---|---|---|---|---|
@@ -319,9 +319,10 @@ The database is designed to handle all daily operations of a hospital, organized
 | 19 | `article_comments` | 6 | `NUMBER`, `CLOB` | `articles(id)`, `users(id)` |
 | 20 | `qna_questions` | 6 | `VARCHAR2`, `CLOB` | `users(id)` |
 | 21 | `qna_answers` | 7 | `CLOB`, `NUMBER(1)` | `qna_questions(id)`, `users(id)` |
-| 22 | `inventory_items` | 10 | `VARCHAR2`, `NUMBER` | — |
-| 23 | `facility_rooms` | 8 | `VARCHAR2`, `NUMBER` | — |
-| 24 | `facility_bookings` | 11 | `VARCHAR2`, `TIMESTAMP` | `facility_rooms(id)`, `appointments(id)`, `users(id)`, `doctors(id)` |
+| 22 | `ambulance_requests` | 13 | `NUMBER(10,8)`, `VARCHAR2` | `users(id)` |
+| 23 | `inventory_items` | 10 | `VARCHAR2`, `NUMBER` | — |
+| 24 | `facility_rooms` | 8 | `VARCHAR2`, `NUMBER` | — |
+| 25 | `facility_bookings` | 11 | `VARCHAR2`, `TIMESTAMP` | `facility_rooms(id)`, `appointments(id)`, `users(id)`, `doctors(id)` |
 
 </details>
 
@@ -567,6 +568,8 @@ Handles paginated searching, completely offloading string matching and limit/off
 | Procedure | Parameters | Description |
 |---|---|---|
 | `search_patients` | `p_search`, `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Paginated search of patients by name or email |
+| `search_medicines` | `p_search`, `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Paginated search of medicines |
+| `search_admin_doctors` | `p_search`, `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Paginated search of doctors for the admin panel |
 
 ### 8. `pkg_filters` ([`12_pkg_filters.sql`](oracle_plsql/12_pkg_filters.sql))
 
@@ -579,6 +582,9 @@ Handles advanced dynamic filtering and dashboard aggregations, completely offloa
 | `filter_doctors` | `p_department_slug`, `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Filters public doctor directory by department |
 | `filter_articles` | `p_category_slug`, `p_limit`, `p_offset`, `OUT p_total`, `OUT p_cursor` | Filters health articles by category |
 | `get_admin_dashboard_metrics` | `p_since_hours`, `OUT p_failed_logins`, `OUT p_failed_payments`, `OUT p_freq_status_changes` | Returns aggregations directly from the audit log |
+| `get_article_categories` | `OUT p_cursor` | Returns all active article categories for public filters |
+| `get_financial_report` | `p_start_date`, `p_end_date`, `OUT p_total_revenue`, `OUT p_medicine_sales` | Returns revenue and sales aggregations for admin dashboard |
+| `get_doctor_report` | `p_doctor_id`, `OUT p_total`, `OUT p_completed`, `OUT p_cancelled` | Returns specific doctor metrics (completed vs cancelled) |
 
 ### 9. `pkg_crud_writes` ([`13_pkg_crud_writes.sql`](oracle_plsql/13_pkg_crud_writes.sql))
 
@@ -779,7 +785,7 @@ flowchart TD
     subgraph Oracle["Oracle Database 19c / 11g"]
         direction TB
         Packages["PL/SQL Packages<br>pkg_users · pkg_appointments<br>pkg_pharmacy · pkg_ambulance<br>pkg_facilities · pkg_inventory"]
-        Schema["Tables · Sequences · Triggers<br>24 tables · 24 sequences<br>24 triggers"]
+        Schema["Tables · Sequences · Triggers<br>25 tables · 24 sequences<br>24 triggers"]
         
         Packages --> Schema
     end
@@ -890,7 +896,7 @@ sqlplus -s hellomed/password123 @run_all.sql
 
 | Step | Script | What It Creates |
 |---|---|---|
-| 1 | `01_schema.sql` | All 24 relational tables with constraints and indexes |
+| 1 | `01_schema.sql` | All 25 relational tables with constraints and indexes |
 | 2 | `02_sequences_triggers.sql` | 24 sequences + 24 BEFORE INSERT triggers for auto-PK and timestamps |
 | 3 | `03_pkg_users.sql` | PL/SQL Package for user management (3 procedures) |
 | 4 | `04_pkg_appointments.sql` | PL/SQL Package for appointment booking (4 procedures) |
@@ -989,7 +995,7 @@ Expected output:
 ```
 HelloMed-DB/
 ├── oracle_plsql/                      # 🗄  All database scripts
-│   ├── 01_schema.sql                  #    DDL: 24 tables, constraints, indexes
+│   ├── 01_schema.sql                  #    DDL: 25 tables, constraints, indexes
 │   ├── 02_sequences_triggers.sql      #    24 sequences + 24 BEFORE INSERT triggers
 │   ├── 03_pkg_users.sql               #    PL/SQL: User management package
 │   ├── 04_pkg_appointments.sql        #    PL/SQL: Appointment booking package

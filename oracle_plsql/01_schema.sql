@@ -17,7 +17,7 @@ CREATE TABLE users (
     updated_at TIMESTAMP
 );
 
--- sessions
+-- 2. sessions
 CREATE TABLE sessions (
     id VARCHAR2(255) PRIMARY KEY,
     user_id NUMBER REFERENCES users(id) ON DELETE SET NULL,
@@ -27,7 +27,7 @@ CREATE TABLE sessions (
     last_activity NUMBER NOT NULL
 );
 
--- 2. departments
+-- 3. departments
 CREATE TABLE departments (
     id NUMBER PRIMARY KEY,
     name VARCHAR2(255) NOT NULL,
@@ -42,7 +42,7 @@ CREATE TABLE departments (
     updated_at TIMESTAMP
 );
 
--- 3. doctors
+-- 4. doctors
 CREATE TABLE doctors (
     id NUMBER PRIMARY KEY,
     department_id NUMBER NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
@@ -77,7 +77,7 @@ CREATE TABLE doctors (
     updated_at TIMESTAMP
 );
 
--- 4. services
+-- 5. services
 CREATE TABLE services (
     id NUMBER PRIMARY KEY,
     department_id NUMBER NOT NULL REFERENCES departments(id) ON DELETE CASCADE,
@@ -93,7 +93,7 @@ CREATE TABLE services (
     updated_at TIMESTAMP
 );
 
--- 5. appointments
+-- 6. appointments
 CREATE TABLE appointments (
     id NUMBER PRIMARY KEY,
     user_id NUMBER REFERENCES users(id) ON DELETE SET NULL,
@@ -124,7 +124,7 @@ CREATE TABLE appointments (
     updated_at TIMESTAMP
 );
 
--- 6. article_categories
+-- 7. article_categories
 CREATE TABLE article_categories (
     id NUMBER PRIMARY KEY,
     name VARCHAR2(255) NOT NULL,
@@ -135,7 +135,7 @@ CREATE TABLE article_categories (
     updated_at TIMESTAMP
 );
 
--- 7. articles
+-- 8. articles
 CREATE TABLE articles (
     id NUMBER PRIMARY KEY,
     article_category_id NUMBER NOT NULL REFERENCES article_categories(id) ON DELETE CASCADE,
@@ -156,7 +156,7 @@ CREATE TABLE articles (
     updated_at TIMESTAMP
 );
 
--- 8. payments
+-- 9. payments
 CREATE TABLE payments (
     id NUMBER PRIMARY KEY,
     appointment_id NUMBER NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
@@ -171,7 +171,7 @@ CREATE TABLE payments (
     updated_at TIMESTAMP
 );
 
--- 9. medicines
+-- 10. medicines
 CREATE TABLE medicines (
     id NUMBER PRIMARY KEY,
     name VARCHAR2(255) NOT NULL,
@@ -191,7 +191,7 @@ CREATE TABLE medicines (
     updated_at TIMESTAMP
 );
 
--- 10. medicine_orders
+-- 11. medicine_orders
 CREATE TABLE medicine_orders (
     id NUMBER PRIMARY KEY,
     user_id NUMBER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -213,7 +213,7 @@ CREATE TABLE medicine_orders (
     updated_at TIMESTAMP
 );
 
--- 11. medicine_order_items
+-- 12. medicine_order_items
 CREATE TABLE medicine_order_items (
     id NUMBER PRIMARY KEY,
     medicine_order_id NUMBER NOT NULL REFERENCES medicine_orders(id) ON DELETE CASCADE,
@@ -227,7 +227,7 @@ CREATE TABLE medicine_order_items (
 -- We use a separate foreign key statement for medicine_id to simulate restrictOnDelete (often default behavior if no cascade, but we explicitly enforce)
 ALTER TABLE medicine_order_items ADD CONSTRAINT fk_moi_medicine FOREIGN KEY (medicine_id) REFERENCES medicines(id);
 
--- 12. appointment_chat_messages
+-- 13. appointment_chat_messages
 CREATE TABLE appointment_chat_messages (
     id NUMBER PRIMARY KEY,
     appointment_id NUMBER NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
@@ -243,7 +243,7 @@ CREATE TABLE appointment_chat_messages (
 );
 CREATE INDEX idx_apm_chat_created ON appointment_chat_messages(appointment_id, created_at);
 
--- 13. appointment_prescription_items
+-- 14. appointment_prescription_items
 CREATE TABLE appointment_prescription_items (
     id NUMBER PRIMARY KEY,
     appointment_id NUMBER NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
@@ -258,7 +258,7 @@ CREATE TABLE appointment_prescription_items (
     updated_at TIMESTAMP
 );
 
--- 14. audit_logs
+-- 15. audit_logs
 CREATE TABLE audit_logs (
     id NUMBER PRIMARY KEY,
     actor_user_id NUMBER REFERENCES users(id) ON DELETE SET NULL,
@@ -277,7 +277,7 @@ CREATE INDEX idx_audit_entity ON audit_logs(entity_type, entity_id);
 CREATE INDEX idx_audit_action ON audit_logs(action);
 CREATE INDEX idx_audit_created ON audit_logs(created_at);
 
--- 15. notification_logs
+-- 16. notification_logs
 CREATE TABLE notification_logs (
     id NUMBER PRIMARY KEY,
     user_id NUMBER REFERENCES users(id) ON DELETE SET NULL,
@@ -297,7 +297,7 @@ CREATE TABLE notification_logs (
 CREATE INDEX idx_notif_event_status ON notification_logs(event_key, status);
 CREATE INDEX idx_notif_notifiable ON notification_logs(notifiable_type, notifiable_id);
 
--- 16. patient_profiles
+-- 17. patient_profiles
 CREATE TABLE patient_profiles (
     id NUMBER PRIMARY KEY,
     user_id NUMBER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
@@ -312,7 +312,7 @@ CREATE TABLE patient_profiles (
     updated_at TIMESTAMP
 );
 
--- 17. doctor_reviews
+-- 18. doctor_reviews
 CREATE TABLE doctor_reviews (
     id NUMBER PRIMARY KEY,
     doctor_id NUMBER NOT NULL REFERENCES doctors(id) ON DELETE CASCADE,
@@ -324,7 +324,7 @@ CREATE TABLE doctor_reviews (
     CONSTRAINT uq_doctor_user_review UNIQUE (doctor_id, user_id)
 );
 
--- 18. article_comments
+-- 19. article_comments
 CREATE TABLE article_comments (
     id NUMBER PRIMARY KEY,
     article_id NUMBER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
@@ -335,7 +335,7 @@ CREATE TABLE article_comments (
     updated_at TIMESTAMP
 );
 
--- 19. qna_questions
+-- 20. qna_questions
 CREATE TABLE qna_questions (
     id NUMBER PRIMARY KEY,
     user_id NUMBER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -347,7 +347,7 @@ CREATE TABLE qna_questions (
 );
 CREATE INDEX idx_qna_status ON qna_questions(status);
 
--- 20. qna_answers
+-- 21. qna_answers
 CREATE TABLE qna_answers (
     id NUMBER PRIMARY KEY,
     qna_question_id NUMBER NOT NULL REFERENCES qna_questions(id) ON DELETE CASCADE,
@@ -358,7 +358,7 @@ CREATE TABLE qna_answers (
     updated_at TIMESTAMP
 );
 
--- 21. ambulance_requests
+-- 22. ambulance_requests
 CREATE TABLE ambulance_requests (
     id NUMBER PRIMARY KEY,
     user_id NUMBER REFERENCES users(id) ON DELETE SET NULL,
@@ -376,7 +376,7 @@ CREATE TABLE ambulance_requests (
     updated_at TIMESTAMP
 );
 
--- 22. inventory_items
+-- 23. inventory_items
 CREATE TABLE inventory_items (
     id NUMBER PRIMARY KEY,
     name VARCHAR2(255) NOT NULL,
@@ -389,7 +389,7 @@ CREATE TABLE inventory_items (
     updated_at TIMESTAMP
 );
 
--- 23. facility_rooms
+-- 24. facility_rooms
 CREATE TABLE facility_rooms (
     id NUMBER PRIMARY KEY,
     room_number VARCHAR2(100) NOT NULL,
@@ -400,7 +400,7 @@ CREATE TABLE facility_rooms (
     updated_at TIMESTAMP
 );
 
--- 24. facility_bookings
+-- 25. facility_bookings
 CREATE TABLE facility_bookings (
     id NUMBER PRIMARY KEY,
     facility_room_id NUMBER NOT NULL REFERENCES facility_rooms(id) ON DELETE CASCADE,
