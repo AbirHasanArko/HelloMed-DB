@@ -62,7 +62,9 @@ class ArticleController extends Controller
             ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => $request->query()]
         );
 
-        return view('articles.index', compact('articles'));
+        $categories = collect(\App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_filters.get_article_categories(:cursor); END;", [], \App\Models\ArticleCategory::class));
+
+        return view('articles.index', compact('articles', 'categories'));
     }
 
     public function show(\App\Models\Article $article)

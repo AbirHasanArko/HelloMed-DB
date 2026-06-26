@@ -31,15 +31,21 @@ INSERT INTO users (id, name, email, password, role) VALUES (18, 'Dummy User 18',
 INSERT INTO users (id, name, email, password, role) VALUES (19, 'Dummy User 19', 'dummy19@hellomed.test', '$2y$12$zEPg4pmkNqFW7CKIMbNcN.HJJnnZ3CZuCPoETD87qONV60j9o1HWS', 'doctor');
 
 -- Dummy Article Categories
-INSERT INTO article_categories (id, name, slug, description) VALUES (1, 'Category 1', 'category-1', 'Description');
-INSERT INTO article_categories (id, name, slug, description) VALUES (2, 'Category 2', 'category-2', 'Description');
-INSERT INTO article_categories (id, name, slug, description) VALUES (3, 'Category 3', 'category-3', 'Description');
-INSERT INTO article_categories (id, name, slug, description) VALUES (4, 'Category 4', 'category-4', 'Description');
-INSERT INTO article_categories (id, name, slug, description) VALUES (5, 'Category 5', 'category-5', 'Description');
-INSERT INTO article_categories (id, name, slug, description) VALUES (6, 'Category 6', 'category-6', 'Description');
-INSERT INTO article_categories (id, name, slug, description) VALUES (7, 'Category 7', 'category-7', 'Description');
-INSERT INTO article_categories (id, name, slug, description) VALUES (8, 'Category 8', 'category-8', 'Description');
-INSERT INTO article_categories (id, name, slug, description) VALUES (9, 'Category 9', 'category-9', 'Description');
+INSERT INTO article_categories (id, name, slug, description) VALUES (1, 'General Health', 'general-health', 'General health and wellness tips.');
+INSERT INTO article_categories (id, name, slug, description) VALUES (2, 'Nutrition', 'nutrition', 'Healthy eating and diet plans.');
+INSERT INTO article_categories (id, name, slug, description) VALUES (3, 'Mental Health', 'mental-health', 'Mental wellbeing and psychology.');
+INSERT INTO article_categories (id, name, slug, description) VALUES (4, 'Pediatrics', 'pediatrics', 'Children''s health and childcare.');
+INSERT INTO article_categories (id, name, slug, description) VALUES (5, 'Fitness', 'fitness', 'Exercise routines and fitness advice.');
+INSERT INTO article_categories (id, name, slug, description) VALUES (6, 'Heart Health', 'heart-health', 'Cardiovascular health and prevention.');
+INSERT INTO article_categories (id, name, slug, description) VALUES (7, 'Women''s Health', 'womens-health', 'Health issues specific to women.');
+INSERT INTO article_categories (id, name, slug, description) VALUES (8, 'Men''s Health', 'mens-health', 'Health issues specific to men.');
+INSERT INTO article_categories (id, name, slug, description) VALUES (9, 'Dental Care', 'dental-care', 'Oral hygiene and dentistry.');
+INSERT INTO article_categories (id, name, slug, description) VALUES (10, 'Skin Care', 'skin-care', 'Dermatology and skincare tips.');
+INSERT INTO article_categories (id, name, slug, description) VALUES (11, 'Eye Care', 'eye-care', 'Vision health and ophthalmology.');
+INSERT INTO article_categories (id, name, slug, description) VALUES (12, 'Healthy Aging', 'healthy-aging', 'Geriatrics and aging gracefully.');
+INSERT INTO article_categories (id, name, slug, description) VALUES (13, 'Alternative Medicine', 'alternative-medicine', 'Holistic and natural remedies.');
+INSERT INTO article_categories (id, name, slug, description) VALUES (14, 'First Aid', 'first-aid', 'Emergency response and basic first aid.');
+INSERT INTO article_categories (id, name, slug, description) VALUES (15, 'Chronic Conditions', 'chronic-conditions', 'Managing long-term health issues.');
 
 -- Departments
 

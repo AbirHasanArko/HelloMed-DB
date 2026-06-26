@@ -91,8 +91,7 @@ class AdminDoctorController extends Controller
             'offset' => $offset,
             'out_total' => null
         ];
-
-        $doctorsCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_filters.filter_admin_doctors(:search, :department_id, :limit, :offset, :total, :cursor); END;", $params, \App\Models\Doctor::class);
+        $doctorsCollection = \App\Helpers\OracleHelper::fetchCursor("BEGIN pkg_search.search_admin_doctors(:search, :department_id, :limit, :offset, :total, :cursor); END;", $params, \App\Models\Doctor::class);
         $total = \App\Helpers\OracleHelper::$lastOutParams['out_total'];
 
         foreach ($doctorsCollection as $doctor) {

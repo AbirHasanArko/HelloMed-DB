@@ -6,6 +6,21 @@
         <div class="fade-in" style="margin-bottom: 24px;">
             <h1>Articles</h1>
             <p>General hospital articles covering treatment guidance, prevention, departments, and patient education.</p>
+            
+            <div style="margin-top: 16px;">
+                <form method="GET" action="{{ route('articles.index') }}" style="display: flex; gap: 8px;">
+                    <select name="category" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; min-width: 200px;">
+                        <option value="">All Categories</option>
+                        @foreach($categories as $cat)
+                            <option value="{{ $cat->slug }}" @selected(request('category') == $cat->slug)>{{ $cat->name }}</option>
+                        @endforeach
+                    </select>
+                    <button type="submit" class="button">Filter</button>
+                    @if(request('category'))
+                        <a href="{{ route('articles.index') }}" class="button" style="background-color: #eee; color: #333; border: 1px solid #ccc;">Clear</a>
+                    @endif
+                </form>
+            </div>
         </div>
         <div class="grid cols-3">
             @foreach ($articles as $article)

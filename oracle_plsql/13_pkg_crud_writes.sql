@@ -335,40 +335,6 @@ CREATE OR REPLACE PACKAGE pkg_crud_writes AS
         p_available_to IN VARCHAR2
     );
 
-    PROCEDURE create_article(
-        p_category_id IN NUMBER,
-        p_user_id IN NUMBER,
-        p_title IN VARCHAR2,
-        p_slug IN VARCHAR2,
-        p_excerpt IN VARCHAR2,
-        p_content IN CLOB,
-        p_cover_image_path IN VARCHAR2,
-        p_is_featured IN NUMBER,
-        p_featured_order IN NUMBER,
-        p_is_published IN NUMBER,
-        p_publication_status IN VARCHAR2,
-        p_reviewed_by_user_id IN NUMBER,
-        p_reviewed_at IN DATE,
-        p_id OUT NUMBER
-    );
-
-    PROCEDURE update_article(
-        p_id IN NUMBER,
-        p_category_id IN NUMBER,
-        p_title IN VARCHAR2,
-        p_slug IN VARCHAR2,
-        p_excerpt IN VARCHAR2,
-        p_content IN CLOB,
-        p_cover_image_path IN VARCHAR2,
-        p_is_featured IN NUMBER,
-        p_featured_order IN NUMBER,
-        p_is_published IN NUMBER,
-        p_publication_status IN VARCHAR2,
-        p_reviewed_by_user_id IN NUMBER,
-        p_reviewed_at IN DATE,
-        p_published_at IN DATE
-    );
-
     PROCEDURE create_article_comment(
         p_article_id IN NUMBER,
         p_user_id IN NUMBER,
@@ -578,63 +544,6 @@ CREATE OR REPLACE PACKAGE BODY pkg_crud_writes AS
         COMMIT;
     END update_doctor_schedule;
 
-    PROCEDURE create_article(
-        p_category_id IN NUMBER,
-        p_user_id IN NUMBER,
-        p_title IN VARCHAR2,
-        p_slug IN VARCHAR2,
-        p_excerpt IN VARCHAR2,
-        p_content IN CLOB,
-        p_cover_image_path IN VARCHAR2,
-        p_is_featured IN NUMBER,
-        p_featured_order IN NUMBER,
-        p_is_published IN NUMBER,
-        p_publication_status IN VARCHAR2,
-        p_reviewed_by_user_id IN NUMBER,
-        p_reviewed_at IN DATE,
-        p_id OUT NUMBER
-    ) IS
-    BEGIN
-        INSERT INTO articles (article_category_id, user_id, title, slug, excerpt, body, cover_image_path, is_featured, featured_order, is_published, publication_status, reviewed_by_user_id, reviewed_at)
-        VALUES (p_category_id, p_user_id, p_title, p_slug, p_excerpt, p_content, p_cover_image_path, p_is_featured, p_featured_order, p_is_published, p_publication_status, p_reviewed_by_user_id, p_reviewed_at)
-        RETURNING id INTO p_id;
-        COMMIT;
-    END create_article;
-
-    PROCEDURE update_article(
-        p_id IN NUMBER,
-        p_category_id IN NUMBER,
-        p_title IN VARCHAR2,
-        p_slug IN VARCHAR2,
-        p_excerpt IN VARCHAR2,
-        p_content IN CLOB,
-        p_cover_image_path IN VARCHAR2,
-        p_is_featured IN NUMBER,
-        p_featured_order IN NUMBER,
-        p_is_published IN NUMBER,
-        p_publication_status IN VARCHAR2,
-        p_reviewed_by_user_id IN NUMBER,
-        p_reviewed_at IN DATE,
-        p_published_at IN DATE
-    ) IS
-    BEGIN
-        UPDATE articles
-        SET article_category_id = p_category_id,
-            title = p_title,
-            slug = p_slug,
-            excerpt = p_excerpt,
-            body = p_content,
-            cover_image_path = NVL(p_cover_image_path, cover_image_path),
-            is_featured = p_is_featured,
-            featured_order = p_featured_order,
-            is_published = p_is_published,
-            publication_status = p_publication_status,
-            reviewed_by_user_id = p_reviewed_by_user_id,
-            reviewed_at = p_reviewed_at,
-            published_at = p_published_at
-        WHERE id = p_id;
-        COMMIT;
-    END update_article;
 
     PROCEDURE create_article_comment(
         p_article_id IN NUMBER,
