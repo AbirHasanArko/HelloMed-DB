@@ -10,22 +10,15 @@ class MedicineController extends Controller
 {
     public function index(Request $request)
     {
+        $search = $request->get('search');
         $page = $request->get('page', 1);
         $perPage = 16;
         $offset = ($page - 1) * $perPage;
         
         $pdo = \Illuminate\Support\Facades\DB::getPdo();
-        $stmt = $pdo->prepare('
-            BEGIN
-                SELECT COUNT(*) INTO :total FROM medicines WHERE is_active = 1;
-                OPEN :cursor FOR
-                    SELECT * FROM (
-                        SELECT a.*, ROWNUM rnum FROM (
-                            SELECT * FROM medicines WHERE is_active = 1 ORDER BY created_at DESC
-                        ) a WHERE ROWNUM <= :offset_val + :limit_val
-                    ) WHERE rnum > :offset_val;
-            END;
-        ');
+        $stmt = $pdo->prepare('BEGIN pkg_search.search_medicines(:search_val, :limit_val, :offset_val, :total, :cursor); END;');
+        
+        $stmt->bindParam(':search_val', $search);
         
         $stmt->bindParam(':limit_val', $perPage, \PDO::PARAM_INT);
         $stmt->bindParam(':offset_val', $offset, \PDO::PARAM_INT);

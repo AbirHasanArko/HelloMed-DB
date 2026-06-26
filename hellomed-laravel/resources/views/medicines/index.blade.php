@@ -8,10 +8,19 @@
             <h1>Medicine shop</h1>
             <p>Order pharmacy items online and receive delivery updates from the hospital pharmacy team.</p>
         </div>
-        <a class="button" href="{{ route('shop.cart') }}">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-            View cart
-        </a>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 12px;">
+            <form method="GET" action="{{ route('medicines.index') }}" style="display:flex;gap:8px;">
+                <input type="text" name="search" placeholder="Search name or group..." value="{{ request('search') }}" style="padding:8px;border-radius:4px;border:1px solid #ccc;">
+                <button type="submit" class="button">Search</button>
+                @if(request('search'))
+                    <a href="{{ route('medicines.index') }}" class="button" style="background-color: #eee; color: #333; border: 1px solid #ccc;">Clear</a>
+                @endif
+            </form>
+            <a class="button" href="{{ route('shop.cart') }}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                View cart
+            </a>
+        </div>
     </div>
     <div class="grid cols-4">
         @foreach ($medicines as $medicine)
